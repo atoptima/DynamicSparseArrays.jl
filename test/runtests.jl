@@ -9,6 +9,8 @@ function main()
 
 
     @show DynamicSparseArrays._find(pma, 2)
+    @show DynamicSparseArrays._insert(pma, 2, 1.5)
+    @show DynamicSparseArrays._find(pma, 2)
     return
 end
 
