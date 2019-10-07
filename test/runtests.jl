@@ -1,11 +1,14 @@
 using DynamicSparseArrays
 
 function main()
-    pma = PackedMemoryArray{Float64}(100)
+    pma = PackedMemoryArray{Int,Float64}(100)
     @show pma.capacity
     @show pma.segment_capacity
     @show pma.nb_segments
     @show pma.height
+
+
+    @show DynamicSparseArrays._find(pma, 2)
     return
 end
 
