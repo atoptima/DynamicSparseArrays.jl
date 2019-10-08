@@ -2,6 +2,9 @@ module DynamicSparseArrays
 
 export PackedMemoryArray
 
+hyperceil(x) = 1 << ceil(Int,log2(x))
+hyperfloor(x) = 1 << floor(Int,log2(x))
+
 mutable struct PackedMemoryArray{K,T}
     capacity::Int
     segment_capacity::Int
@@ -12,8 +15,24 @@ mutable struct PackedMemoryArray{K,T}
     t_0::Float64 # upper density treshold at leaves
     p_h::Float64 # lower density treshold at root
     p_0::Float64 # lower density treshold at leaves
+    t_d::Float64 # upper density theshold constant
+    p_d::Float64 # lower density treshold constant
     empty::Vector{Bool} #maybe should be replaced by a nothing ?
     array::Vector{Tuple{K,T}}
+end
+
+function PackedMemoryArray{K,T}(capacity::Int) where {K,T}
+    seg_capacity = ceil(Int, log2(capacity))
+    nb_segs = hyperceil(capacity / seg_capacity)
+    height = log2(nb_segs)
+    real_capacity = nb_segs * seg_capacity
+    t_h, t_0, p_h, p_0 = 1.0, 0.75, 0.5, 0.25
+    t_d = (t_h - t_0) / height
+    p_d = (p_h - p_0) / height 
+    return PackedMemoryArray{K,T}(
+        real_capacity, seg_capacity, nb_segs, 0, height, t_h, t_0, p_h, p_0, 
+        t_d, p_d, ones(Bool, real_capacity), Vector{Tuple{K,T}}(undef, real_capacity)
+    )
 end
 
 function _emptycell(pma::PackedMemoryArray, pos::Int)
@@ -36,7 +55,7 @@ function _previousemptycell(pma::PackedMemoryArray, from::Int)
     return pos
 end
 
-function _movecellstoright(pma::PackedMemoryArray, from::Int, to::Int)
+function _movecellstoright!(pma::PackedMemoryArray, from::Int, to::Int)
     i = to
     while i >= from
         pma.array[i+1] = pma.array[i]
@@ -46,7 +65,7 @@ function _movecellstoright(pma::PackedMemoryArray, from::Int, to::Int)
     return
 end
 
-function _movecellstoleft(pma::PackedMemoryArray, from::Int, to::Int)
+function _movecellstoleft!(pma::PackedMemoryArray, from::Int, to::Int)
     i = to
     while i <= from
         pma.array[i-1] = pma.array[i]
@@ -63,15 +82,14 @@ function _getkey(pma::PackedMemoryArray, pos::Int)
     return pma.array[pos][1]
 end
 
-function PackedMemoryArray{K,T}(capacity::Int) where {K,T}
-    seg_capacity = Int(ceil(log2(capacity)))
-    nb_segs = Int(ceil(capacity / seg_capacity))
-    height = Int(ceil(log2(nb_segs)))
-    real_capacity = nb_segs * seg_capacity
-    return PackedMemoryArray{K,T}(
-        real_capacity, seg_capacity, nb_segs, 0, height, 1.0, 0.75, 0.5, 0.25, 
-        ones(Bool, capacity), Vector{Tuple{K,T}}(undef, capacity)
-    )
+function _nbcells(pma::PackedMemoryArray, window_start::Int, window_end::Int)
+    nbcells = 0
+    for pos in window_start:window_end
+        if !_emptycell(pma, pos)
+            nbcells += 1
+        end
+    end
+    return nbcells
 end
 
 # Binary search that returns the position of the key in the array
@@ -110,16 +128,17 @@ end
 function _insert(pma::PackedMemoryArray{K,T}, key::K, value::T) where {K,T}
     s = _find(pma, key)
     _getkey(pma, s) == key && return false
+    _rebalance!(pma, s)
     # insert the new key after the one found by the binary search
     nextemptycell = _nextemptycell(pma, s)
     if nextemptycell <= pma.capacity
-        _movecellstoright(pma, s+1, nextemptycell)
+        _movecellstoright!(pma, s+1, nextemptycell)
         pma.array[s+1] = (key, value)
         pma.empty[s+1] = false
     else
         previousemptycell = _previousemptycell(pma, s)
         if previousemptycell >= 1
-            _movecellstoleft(pma, s, previousemptycell)
+            _movecellstoleft!(pma, s, previousemptycell)
             pma.array[s] = (key, value)
             pma.empty[s] = false 
         else
@@ -129,8 +148,25 @@ function _insert(pma::PackedMemoryArray{K,T}, key::K, value::T) where {K,T}
     return true
 end
 
-
-
+function _rebalance!(pma::PackedMemoryArray, pos::Int)
+    height = 0
+    while height <= pma.height 
+        window_capacity = 2^height * pma.segment_capacity
+        window_start = pos ÷ window_capacity + 1
+        window_end = window_start + window_capacity - 1
+        nb_cells = _nbcells(pma, window_start, window_end)
+        density = nb_cells / window_capacity
+        t = pma.t_0 + pma.t_d * height
+        p = pma.p_0 + pma.p_d * height
+        if p <= density <= t
+            println("do things because $t <= $density <= $p.")
+            return
+        end
+        height += 1
+    end
+    println("resize")
+    return
+end
 
 end# module
 

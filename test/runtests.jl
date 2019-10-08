@@ -11,6 +11,11 @@ function main()
     @show DynamicSparseArrays._find(pma, 2)
     @show DynamicSparseArrays._insert(pma, 2, 1.5)
     @show DynamicSparseArrays._find(pma, 2)
+    @show DynamicSparseArrays._insert(pma, 2, 1.5)
+    @show DynamicSparseArrays._insert(pma, 3, 1.5)
+    @show DynamicSparseArrays._insert(pma, 9, 1.5)
+    @show DynamicSparseArrays._insert(pma, 6, 1.5)
+    @show DynamicSparseArrays._insert(pma, 4, 1.5)
     return
 end
 
