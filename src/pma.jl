@@ -11,7 +11,7 @@ hyperfloor(x) = 2^floor(Int,log2(x))
 # end
 
 # Adaptative Packed Memory Array
-mutable struct PackedMemoryArray{K,T}
+mutable struct PackedMemoryArray{K,T} <: AbstractArray{T,1}
     capacity::Int
     segment_capacity::Int
     nb_segments::Int
@@ -100,7 +100,7 @@ function _nbcells(pma::PackedMemoryArray, window_start::Int, window_end::Int)
 end
 
 # Binary search that returns the position of the key in the array
-function _find(pma::PackedMemoryArray{K,T}, key::K)::Int where {K,T}
+function _find(pma::PackedMemoryArray{K,T}, key::K) where {K,T}
     from = 1
     to = length(pma.array)
     while from <= to
@@ -118,7 +118,7 @@ function _find(pma::PackedMemoryArray{K,T}, key::K)::Int where {K,T}
             elseif curkey < key
                 from = mid + 1
             else
-                return i
+                return (i, pma.array[i][2])
             end
         end
     end
@@ -127,15 +127,18 @@ function _find(pma::PackedMemoryArray{K,T}, key::K)::Int where {K,T}
         i -= 1
     end
     if i > 0
-        return i
+        return (i, pma.array[i][2])
     end
-    return 0
+    return (0, zero(T))
 end
 
-function _insert(pma::PackedMemoryArray{K,T}, key::K, value::T) where {K,T}
-    s = _find(pma, key)
+function _insert(pma::PackedMemoryArray, key, value)
+    (s, val) = _find(pma, key)
     insertion_pos = s
-    _getkey(pma, s) == key && return false
+    if _getkey(pma, s) == key
+        pma.array[s] = (key, value)
+        return false
+    end
     # insert the new key after the one found by the binary search
     nextemptycell = _nextemptycell(pma, s)
     if nextemptycell <= pma.capacity
@@ -245,4 +248,16 @@ function _extend!(pma::PackedMemoryArray)
         pma.empty[i] = true
     end
     return
+end
+
+Base.ndims(pma::PackedMemoryArray) = 1
+Base.size(pma::PackedMemoryArray) = (pma.capacity,)
+Base.length(pma::PackedMemoryArray) = pma.nb_elements
+
+function Base.setindex!(pma::PackedMemoryArray, value, key)
+    return _insert(pma, key, value)
+end
+
+function Base.getindex(pma::PackedMemoryArray, key)
+    return _find(pma, key)[2]
 end

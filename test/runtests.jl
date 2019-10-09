@@ -1,4 +1,4 @@
-using DynamicSparseArrays
+using DynamicSparseArrays, Test
 
 function main()
     pma = PackedMemoryArray{Int,Float64}(100)
@@ -7,15 +7,17 @@ function main()
     @show pma.nb_segments
     @show pma.height
 
-
-    @show DynamicSparseArrays._find(pma, 2)
-    @show DynamicSparseArrays._insert(pma, 2, 1.5)
-    @show DynamicSparseArrays._find(pma, 2)
-    @show DynamicSparseArrays._insert(pma, 2, 1.5)
-    @show DynamicSparseArrays._insert(pma, 3, 1.5)
-    @show DynamicSparseArrays._insert(pma, 9, 1.5)
-    @show DynamicSparseArrays._insert(pma, 6, 1.5)
-    @show DynamicSparseArrays._insert(pma, 4, 1.5)
+    @test pma[2] == 0
+    pma[2] = 1.5
+    @show pma[2]
+    @test pma[2] == 1.5
+    pma[2] = 2
+    @show pma[2]
+    @test pma[2] == 2
+    @show pma[3] = 6
+    @show pma[9] = 18
+    @show pma[6] = 2.0
+    @show pma[4] = 10.0
     return
 end
 
