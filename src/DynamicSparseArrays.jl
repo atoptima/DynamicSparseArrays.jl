@@ -2,9 +2,18 @@ module DynamicSparseArrays
 
 export PackedMemoryArray
 
-hyperceil(x) = 1 << ceil(Int,log2(x))
-hyperfloor(x) = 1 << floor(Int,log2(x))
+hyperceil(x) = 2^ceil(Int,log2(x))
+hyperfloor(x) = 2^floor(Int,log2(x))
 
+mutable struct Predictor
+
+end
+
+function Predictor()
+
+end
+
+# Adaptative Packed Memory Array
 mutable struct PackedMemoryArray{K,T}
     capacity::Int
     segment_capacity::Int
@@ -83,6 +92,7 @@ function _getkey(pma::PackedMemoryArray, pos::Int)
 end
 
 function _nbcells(pma::PackedMemoryArray, window_start::Int, window_end::Int)
+    window_start == window_end && return 0
     nbcells = 0
     for pos in window_start:window_end
         if !_emptycell(pma, pos)
@@ -127,14 +137,15 @@ end
 
 function _insert(pma::PackedMemoryArray{K,T}, key::K, value::T) where {K,T}
     s = _find(pma, key)
+    insertion_pos = s
     _getkey(pma, s) == key && return false
-    _rebalance!(pma, s)
     # insert the new key after the one found by the binary search
     nextemptycell = _nextemptycell(pma, s)
     if nextemptycell <= pma.capacity
         _movecellstoright!(pma, s+1, nextemptycell)
         pma.array[s+1] = (key, value)
         pma.empty[s+1] = false
+        insertion_pos += 1
     else
         previousemptycell = _previousemptycell(pma, s)
         if previousemptycell >= 1
@@ -145,26 +156,42 @@ function _insert(pma::PackedMemoryArray{K,T}, key::K, value::T) where {K,T}
             error("No empty cell to insert a new element in the PMA.") # Should not occur thanks to density.
         end
     end
+    _look_for_rebalance!(pma, insertion_pos)
     return true
 end
 
-function _rebalance!(pma::PackedMemoryArray, pos::Int)
+function _uneven_rebalance!(pma, window_start, window_end)
+
+end
+
+function _look_for_rebalance!(pma::PackedMemoryArray, pos::Int)
     height = 0
+    prev_window_start = pos
+    prev_window_end = pos + 1
+    if pos % pma.segment_capacity == 0 # end of segment
+        prev_window_start -= 1
+        prev_window_pos -= 1
+    end
+    nb_cells_left = 0
+    nb_cells_right = 0
     while height <= pma.height 
         window_capacity = 2^height * pma.segment_capacity
         window_start = pos ÷ window_capacity + 1
         window_end = window_start + window_capacity - 1
-        nb_cells = _nbcells(pma, window_start, window_end)
-        density = nb_cells / window_capacity
+        nb_cells_left += _nbcells(pma, window_start, prev_window_start)
+        nb_cells_right += _nbcells(pma, prev_window_end, window_end)
+        density = (nb_cells_left + nb_cells_right) / window_capacity
         t = pma.t_0 + pma.t_d * height
-        p = pma.p_0 + pma.p_d * height
-        if p <= density <= t
-            println("do things because $t <= $density <= $p.")
+        if density <= t
+            _uneven_rebalance!(pma, window_start, window_end)
             return
         end
+        prev_window_start = window_start
+        prev_window_end = window_end
         height += 1
     end
-    println("resize")
+    # double the size with new right child empty array
+    # _unven_rebalance!(pma, 1, pma.capacity)
     return
 end
 
