@@ -226,7 +226,23 @@ function _look_for_rebalance!(pma::PackedMemoryArray, pos::Int)
         prev_window_end = window_end
         height += 1
     end
-    # double the size with new right child empty array
-    # _unven_rebalance!(pma, 1, pma.capacity)
+    _extend!(pma)
+    nb_cells = nb_cells_left + nb_cells_right
+    _even_rebalance!(pma, 1, pma.capacity, nb_cells)
+    return
+end
+
+function _extend!(pma::PackedMemoryArray)
+    pma.capacity *= 2
+    pma.nb_segments *= 2
+    pma.height += 1
+    pma.t_d = (pma.t_h - pma.t_0) / pma.height
+    pma.p_d = (pma.p_h - pma.p_0) / pma.height 
+    resize!(pma.empty, pma.capacity)
+    resize!(pma.array, pma.capacity)
+    new_half_start = pma.capacity / 2 + 1
+    for i in new_half_start:pma.capacity
+        pma.empty[i] = true
+    end
     return
 end
