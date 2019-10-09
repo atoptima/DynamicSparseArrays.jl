@@ -10,8 +10,12 @@ hyperfloor(x) = 2^floor(Int,log2(x))
 
 # end
 
+abstract type AbstractPredictor end
+
+struct NoPredictor <: AbstractPredictor end
+
 # Adaptative Packed Memory Array
-mutable struct PackedMemoryArray{K,T} <: AbstractArray{T,1}
+mutable struct PackedMemoryArray{K,T,P <: AbstractPredictor} <: AbstractArray{T,1}
     capacity::Int
     segment_capacity::Int
     nb_segments::Int
@@ -27,20 +31,46 @@ mutable struct PackedMemoryArray{K,T} <: AbstractArray{T,1}
     p_d::Float64 # lower density treshold constant
     empty::Vector{Bool} #maybe should be replaced by a nothing ?
     array::Vector{Tuple{K,T}}
+    predictor::P
 end
 
 function PackedMemoryArray{K,T}(capacity::Int) where {K,T}
     seg_capacity = ceil(Int, log2(capacity))
     nb_segs = hyperceil(capacity / seg_capacity)
-    height = log2(nb_segs)
+    height = Int(log2(nb_segs))
     real_capacity = nb_segs * seg_capacity
-    t_h, t_0, p_h, p_0 = 1.0, 0.75, 0.5, 0.25
+    t_h, t_0, p_h, p_0 = 0.9, 0.8, 0.3, 0.15
     t_d = (t_h - t_0) / height
     p_d = (p_h - p_0) / height 
-    return PackedMemoryArray{K,T}(
+    return PackedMemoryArray(
         real_capacity, seg_capacity, nb_segs, 0, 0, 0, height, t_h, t_0, p_h, p_0, 
-        t_d, p_d, ones(Bool, real_capacity), Vector{Tuple{K,T}}(undef, real_capacity)
+        t_d, p_d, ones(Bool, real_capacity), Vector{Tuple{K,T}}(undef, real_capacity),
+        NoPredictor()
     )
+end
+
+function PackedMemoryArray(keys::Vector{K}, values::Vector{T}) where {K,T}
+    @assert length(keys) == length(values)
+    nb_elements = length(values)
+    min_capacity = nb_elements * 1.5
+    seg_capacity = ceil(Int, log2(min_capacity))
+    nb_segs = hyperceil(min_capacity / seg_capacity)
+    height = Int(log2(nb_segs))
+    capacity = nb_segs * seg_capacity
+    t_h, t_0, p_h, p_0 = 0.92, 0.7, 0.3, 0.08
+    t_d = (t_h - t_0) / height
+    p_d = (p_h - p_0) / height 
+    empty = ones(Bool, capacity)
+    empty[1:length(keys)] .= false
+    array = collect(zip(keys, values))
+    sort!(array, by = e -> e[1])
+    resize!(array, capacity)
+    pma = PackedMemoryArray(
+        capacity, seg_capacity, nb_segs, nb_elements, 0, 0, height, t_h, t_0, 
+        p_h, p_0, t_d, p_d, empty, array, NoPredictor()
+    )
+    _even_rebalance!(pma, 1, capacity, nb_elements)
+    return pma
 end
 
 function _emptycell(pma::PackedMemoryArray, pos::Int)

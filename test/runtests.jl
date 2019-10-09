@@ -1,11 +1,13 @@
-using DynamicSparseArrays, Test, BenchmarkTools
+using DynamicSparseArrays, Test, BenchmarkTools, Random
+
+rng = MersenneTwister(1234123);
 
 function test_insert_benchmark()
     st = Dict{Int, Float64}()
     pma = PackedMemoryArray{Int,Float64}(10)
     for i in 1:30
-        k = rand(1:1000000)
-        v = rand(1:0.001:10000)
+        k = rand(rng, 1:1000000)
+        v = rand(rng, 1:0.001:10000)
         pma[k] = v
         st[k] = v
     end
@@ -19,7 +21,22 @@ function test_insert_benchmark()
     return
 end
 
+function create(keys_array, values_array)
+    pma = PackedMemoryArray(keys_array, values_array)
+    # for (i, k) in enumerate(keys_array)
+    #     @test pma[k] == values_array[i]
+    # end
+    return pma
+end
+
+function insert(pma, dict)
+    for (k,v) in dict
+        pma[k] = v
+    end
+end
+
 function main()
+    #some_test_to_improve()
     pma = PackedMemoryArray{Int,Float64}(100)
     @show pma.capacity
     @show pma.segment_capacity
@@ -38,7 +55,38 @@ function main()
     # @show pma[6] = 2.0
     # @show pma[4] = 10.0
 
-    @btime test_insert_benchmark()
+
+    kv = Dict{Int, Float64}(rand(rng, 1:10000000000) => rand(rng, 1:0.1:10000) for i in 1:1000000)
+    keys_array = collect(keys(kv))
+    values_array = collect(values(kv))
+    @time begin
+        pma = create(keys_array, values_array)
+    end
+    for (k,v) in kv
+        if pma[k] != v
+            println("k = $k, v =$v, pma[k] = $(pma[k])")
+            error("failed")
+        end
+    end
+
+    kv = Dict{Int, Float64}(rand(rng, 1:10000000000) => rand(rng, 1:0.1:10000) for i in 1:1000)
+    keys_array = collect(keys(kv))
+    values_array = collect(values(kv))
+    pma = PackedMemoryArray(keys_array, values_array)
+
+    kv = Dict{Int, Float64}(rand(rng, 1:10000000000) => rand(rng, 1:0.1:10000) for i in 1:1000000)
+    @time begin 
+        insert(pma, kv)
+    end
+    for (k,v) in kv
+        if pma[k] != v
+            println("k = $k, v =$v, pma[k] = $(pma[k])")
+            error("failed")
+        end
+    end
+
+    #@btime test_insert_benchmark()
+
 
     return
 end
