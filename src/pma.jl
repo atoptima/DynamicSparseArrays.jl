@@ -16,6 +16,8 @@ mutable struct PackedMemoryArray{K,T} <: AbstractArray{T,1}
     segment_capacity::Int
     nb_segments::Int
     nb_elements::Int
+    first_element_pos::Int # for firstindex method
+    last_element_pos::Int # for lastindex method
     height::Int
     t_h::Float64 # upper density treshold at root
     t_0::Float64 # upper density treshold at leaves
@@ -36,18 +38,19 @@ function PackedMemoryArray{K,T}(capacity::Int) where {K,T}
     t_d = (t_h - t_0) / height
     p_d = (p_h - p_0) / height 
     return PackedMemoryArray{K,T}(
-        real_capacity, seg_capacity, nb_segs, 0, height, t_h, t_0, p_h, p_0, 
+        real_capacity, seg_capacity, nb_segs, 0, 0, 0, height, t_h, t_0, p_h, p_0, 
         t_d, p_d, ones(Bool, real_capacity), Vector{Tuple{K,T}}(undef, real_capacity)
     )
 end
 
 function _emptycell(pma::PackedMemoryArray, pos::Int)
+    #@assert 1 <= pos <= pma.capacity
     return pma.empty[pos]
 end
 
 function _nextemptycell(pma::PackedMemoryArray, from::Int)
     pos = from + 1
-    while !_emptycell(pma, pos) && pos <= pma.capacity 
+    while pos <= pma.capacity && !_emptycell(pma, pos)
         pos += 1
     end
     return pos
@@ -55,14 +58,15 @@ end
 
 function _previousemptycell(pma::PackedMemoryArray, from::Int)
     pos = from - 1
-    while !_emptycell(pma, pos) && pos >= 1
+    while pos >= 1 && !_emptycell(pma, pos)
         pos -= 1
     end
     return pos
 end
 
 function _movecellstoright!(pma::PackedMemoryArray, from::Int, to::Int)
-    i = to
+    #@assert 1 <= from <= to <= pma.capacity
+    i = to - 1
     while i >= from
         pma.array[i+1] = pma.array[i]
         pma.empty[i+1] = pma.empty[i]
@@ -72,7 +76,8 @@ function _movecellstoright!(pma::PackedMemoryArray, from::Int, to::Int)
 end
 
 function _movecellstoleft!(pma::PackedMemoryArray, from::Int, to::Int)
-    i = to
+    #@assert 1 <= to <= from <= pma.capacity
+    i = to + 1
     while i <= from
         pma.array[i-1] = pma.array[i]
         pma.empty[i-1] = pma.empty[i]
@@ -88,10 +93,12 @@ function _getkey(pma::PackedMemoryArray, pos::Int)
     return pma.array[pos][1]
 end
 
-function _nbcells(pma::PackedMemoryArray, window_start::Int, window_end::Int)
-    window_start == window_end && return 0
+# from included, to excluded
+function _nbcells(pma::PackedMemoryArray, from::Int, to::Int)
+    #@assert 1 <= from <= to <= pma.capacity + 1
+    from >= to && return 0
     nbcells = 0
-    for pos in window_start:window_end
+    for pos in from:(to - 1)
         if !_emptycell(pma, pos)
             nbcells += 1
         end
@@ -180,23 +187,30 @@ function _even_rebalance!(pma, window_start, window_end, m)
         # It is a leaf within the treshold, we stop
         return
     end
-    freq = capacity ÷ m
+    freq = capacity / m
     i = window_start
     for j in window_start:window_end
-        if _emptycell(pma, pos) || i == j
-            continue
+        _emptycell(pma, j) && continue
+        if i != j
+            pma.array[i] = pma.array[j]
+            pma.empty[i] = false
+            pma.empty[j] = true
         end
-        pma.array[i] = pma.array[j]
-        pma.empty[i] = false
-        pma.empty[j] = true
         i += 1
     end
+    padding = ceil(Int, (capacity - (m-2) * freq - 2) / 2)
     i -= 1
-    padding = ceil(Int, (capacity - freq * m) / 2)
-    for j in (window_end - padding):-freq:window_start
-        pma.array[j] = pma.array[i]
-        pma.empty[j] = false
-        pma.empty[i] = true
+    j = window_end - padding
+    sum_freq = 0
+    while i >= window_start
+        j = window_end - padding - floor(Int, sum_freq)
+        if i != j
+            pma.array[j] = pma.array[i]
+            pma.empty[j] = false
+            pma.empty[i] = true
+        end
+        i -= 1
+        sum_freq += freq  
     end
     return
 end
@@ -204,19 +218,15 @@ end
 function _look_for_rebalance!(pma::PackedMemoryArray, pos::Int)
     height = 0
     prev_window_start = pos
-    prev_window_end = pos + 1
-    if pos % pma.segment_capacity == 0 # end of segment
-        prev_window_start -= 1
-        prev_window_pos -= 1
-    end
+    prev_window_end = pos - 1
     nb_cells_left = 0
     nb_cells_right = 0
     while height <= pma.height 
         window_capacity = 2^height * pma.segment_capacity
-        window_start = pos ÷ window_capacity + 1
+        window_start = ((pos - 1) ÷ window_capacity) * window_capacity + 1
         window_end = window_start + window_capacity - 1
         nb_cells_left += _nbcells(pma, window_start, prev_window_start)
-        nb_cells_right += _nbcells(pma, prev_window_end, window_end)
+        nb_cells_right += _nbcells(pma, prev_window_end + 1, window_end + 1)
         density = (nb_cells_left + nb_cells_right) / window_capacity
         t = pma.t_0 + pma.t_d * height
         if density <= t
@@ -243,7 +253,7 @@ function _extend!(pma::PackedMemoryArray)
     pma.p_d = (pma.p_h - pma.p_0) / pma.height 
     resize!(pma.empty, pma.capacity)
     resize!(pma.array, pma.capacity)
-    new_half_start = pma.capacity / 2 + 1
+    new_half_start = ceil(Int, pma.capacity / 2)
     for i in new_half_start:pma.capacity
         pma.empty[i] = true
     end
