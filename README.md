@@ -2,8 +2,7 @@
 
 This package is a work in progress.
 
-The goal is to implement Packed Memory Array (PMA), Adaptative PMA, and Packed Compressed Sparse Row Matrix (PCSR) data structures and the insert, delete, search,
-SpMV operations.
+The goal is to implement Adaptative Packed Memory Array (APMA) and Packed Compressed Sparse Row Matrix (PCSR) data structures with the insert, delete, search, and SpMV operations.
 
 ## References
 
@@ -16,8 +15,7 @@ SpMV operations.
 
 > BENDER, Michael A. et HU, Haodong. An adaptive packed-memory array. ACM Transactions on Database Systems (TODS), 2007, vol. 32, no 4, p. 26.
 
-
-### PMA
+Not adptative :
 
 > BENDER, Michael A., DEMAINE, Erik D., et FARACH-COLTON, Martin. Cache-oblivious B-trees. SIAM Journal on Computing, 2005, vol. 35, no 2, p. 341-358.
 

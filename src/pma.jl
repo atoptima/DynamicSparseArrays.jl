@@ -1,6 +1,15 @@
 hyperceil(x) = 2^ceil(Int,log2(x))
 hyperfloor(x) = 2^floor(Int,log2(x))
 
+mutable struct Predictor
+
+end
+
+function Predictor()
+
+end
+
+
 # Adaptative Packed Memory Array
 mutable struct PackedMemoryArray{K,T}
     capacity::Int
