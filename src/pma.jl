@@ -1,14 +1,14 @@
 hyperceil(x) = 2^ceil(Int,log2(x))
 hyperfloor(x) = 2^floor(Int,log2(x))
 
-mutable struct Predictor
+# TODO
+# mutable struct Predictor
+#     cells::Array{Tuple{Int,Int,Int}}
+# end
 
-end
+# function Predictor(nbcells)
 
-function Predictor()
-
-end
-
+# end
 
 # Adaptative Packed Memory Array
 mutable struct PackedMemoryArray{K,T}
@@ -158,16 +158,43 @@ function _insert(pma::PackedMemoryArray{K,T}, key::K, value::T) where {K,T}
 end
 
 # Should be in apma.jl
-function _uneven_rebalance!(pma, window_start, window_end, m, p, t)
+# function _uneven_rebalance!(pma, window_start, window_end, m, p, t)
+#     capacity = window_end - window_start + 1
+#     if capacity == pma.segment_capacity
+#         # It is a leaf within the treshold, we stop
+#         return
+#     end
+#     half_cap = capacity / 2
+#     splitnum = max(half_cap * p, m - half_cap * t)
+#     # optvalue = 
+#     # do things 
+#     return
+# end
+
+function _even_rebalance!(pma, window_start, window_end, m)
     capacity = window_end - window_start + 1
     if capacity == pma.segment_capacity
         # It is a leaf within the treshold, we stop
         return
     end
-    half_cap = capacity / 2
-    splitnum = max(half_cap * p, m - half_cap * t)
-    # optvalue = 
-    # do things 
+    freq = capacity ÷ m
+    i = window_start
+    for j in window_start:window_end
+        if _emptycell(pma, pos) || i == j
+            continue
+        end
+        pma.array[i] = pma.array[j]
+        pma.empty[i] = false
+        pma.empty[j] = true
+        i += 1
+    end
+    i -= 1
+    padding = ceil(Int, (capacity - freq * m) / 2)
+    for j in (window_end - padding):-freq:window_start
+        pma.array[j] = pma.array[i]
+        pma.empty[j] = false
+        pma.empty[i] = true
+    end
     return
 end
 
@@ -192,7 +219,7 @@ function _look_for_rebalance!(pma::PackedMemoryArray, pos::Int)
         if density <= t
             p = pma.p_0 + pma.p_d * height
             nb_cells = nb_cells_left + nb_cells_right
-            _uneven_rebalance!(pma, window_start, window_end, nb_cells, p, t)
+            _even_rebalance!(pma, window_start, window_end, nb_cells)#, p, t)
             return
         end
         prev_window_start = window_start
