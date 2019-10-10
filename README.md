@@ -21,6 +21,12 @@ Not adptative :
 
 > ITAI, Alon, KONHEIM, Alan G., et RODEH, Michael. A sparse table implementation of priority queues. In : International Colloquium on Automata, Languages, and Programming. Springer, Berlin, Heidelberg, 1981. p. 417-431.
 
+One-phase rebalance & Partially dearmotized PMA :
+
+> HU, Haodong. Cache-Oblivious Data Structures forMassive Data Sets.
+PhD Dissertation, 2007, p. 102.
+[Link](https://dspace.sunyconnect.suny.edu/bitstream/handle/1951/44806/000000182.sbu.pdf?sequence=3)
+
 
 ### Codes 
 

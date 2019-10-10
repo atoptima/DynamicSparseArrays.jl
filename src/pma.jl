@@ -29,8 +29,8 @@ mutable struct PackedMemoryArray{K,T,P <: AbstractPredictor} <: AbstractArray{T,
     p_0::Float64 # lower density treshold at leaves
     t_d::Float64 # upper density theshold constant
     p_d::Float64 # lower density treshold constant
-    empty::Vector{Bool} #maybe should be replaced by a nothing ?
-    array::Vector{Tuple{K,T}}
+    #empty::Vector{Bool} #maybe should be replaced by a nothing ?
+    array::Vector{Union{Nothing,Tuple{K,T}}}
     predictor::P
 end
 
@@ -39,35 +39,39 @@ function PackedMemoryArray{K,T}(capacity::Int) where {K,T}
     nb_segs = hyperceil(capacity / seg_capacity)
     height = Int(log2(nb_segs))
     real_capacity = nb_segs * seg_capacity
-    t_h, t_0, p_h, p_0 = 0.9, 0.8, 0.3, 0.15
+    t_h, t_0, p_h, p_0 = 0.92, 0.7, 0.3, 0.08
     t_d = (t_h - t_0) / height
     p_d = (p_h - p_0) / height 
     return PackedMemoryArray(
         real_capacity, seg_capacity, nb_segs, 0, 0, 0, height, t_h, t_0, p_h, p_0, 
-        t_d, p_d, ones(Bool, real_capacity), Vector{Tuple{K,T}}(undef, real_capacity),
+        t_d, p_d, Vector{Union{Nothing,Tuple{K,T}}}(nothing, real_capacity),
         NoPredictor()
     )
 end
 
 function PackedMemoryArray(keys::Vector{K}, values::Vector{T}) where {K,T}
     @assert length(keys) == length(values)
+    t_h, t_0, p_h, p_0 = 0.92, 0.7, 0.3, 0.08
     nb_elements = length(values)
-    min_capacity = nb_elements * 1.5
+    min_capacity = floor(Int, nb_elements / p_h)
     seg_capacity = ceil(Int, log2(min_capacity))
     nb_segs = hyperceil(min_capacity / seg_capacity)
     height = Int(log2(nb_segs))
     capacity = nb_segs * seg_capacity
-    t_h, t_0, p_h, p_0 = 0.92, 0.7, 0.3, 0.08
     t_d = (t_h - t_0) / height
     p_d = (p_h - p_0) / height 
-    empty = ones(Bool, capacity)
-    empty[1:length(keys)] .= false
-    array = collect(zip(keys, values))
+    array = Vector{Union{Nothing,Tuple{K,T}}}(nothing, nb_elements)
+    for i in 1:nb_elements
+        array[i] = (keys[i], values[i])
+    end
     sort!(array, by = e -> e[1])
     resize!(array, capacity)
+    # for i in nb_elements + 1:capacity
+    #     array[i] = nothing
+    # end
     pma = PackedMemoryArray(
         capacity, seg_capacity, nb_segs, nb_elements, 0, 0, height, t_h, t_0, 
-        p_h, p_0, t_d, p_d, empty, array, NoPredictor()
+        p_h, p_0, t_d, p_d, array, NoPredictor()
     )
     _even_rebalance!(pma, 1, capacity, nb_elements)
     return pma
@@ -75,7 +79,7 @@ end
 
 function _emptycell(pma::PackedMemoryArray, pos::Int)
     #@assert 1 <= pos <= pma.capacity
-    return pma.empty[pos]
+    return pma.array[pos] == nothing
 end
 
 function _nextemptycell(pma::PackedMemoryArray, from::Int)
@@ -99,7 +103,6 @@ function _movecellstoright!(pma::PackedMemoryArray, from::Int, to::Int)
     i = to - 1
     while i >= from
         pma.array[i+1] = pma.array[i]
-        pma.empty[i+1] = pma.empty[i]
         i -= 1
     end
     return
@@ -110,7 +113,6 @@ function _movecellstoleft!(pma::PackedMemoryArray, from::Int, to::Int)
     i = to + 1
     while i <= from
         pma.array[i-1] = pma.array[i]
-        pma.empty[i-1] = pma.empty[i]
         i += 1
     end
     return
@@ -181,14 +183,12 @@ function _insert(pma::PackedMemoryArray, key, value)
     if nextemptycell <= pma.capacity
         _movecellstoright!(pma, s+1, nextemptycell)
         pma.array[s+1] = (key, value)
-        pma.empty[s+1] = false
         insertion_pos += 1
     else
         previousemptycell = _previousemptycell(pma, s)
         if previousemptycell >= 1
             _movecellstoleft!(pma, s, previousemptycell)
             pma.array[s] = (key, value)
-            pma.empty[s] = false 
         else
             error("No empty cell to insert a new element in the PMA.") # Should not occur thanks to density.
         end
@@ -223,8 +223,7 @@ function _even_rebalance!(pma, window_start, window_end, m)
         _emptycell(pma, j) && continue
         if i != j
             pma.array[i] = pma.array[j]
-            pma.empty[i] = false
-            pma.empty[j] = true
+            pma.array[j] = nothing
         end
         i += 1
     end
@@ -236,8 +235,7 @@ function _even_rebalance!(pma, window_start, window_end, m)
         j = window_end - padding - floor(Int, sum_freq)
         if i != j
             pma.array[j] = pma.array[i]
-            pma.empty[j] = false
-            pma.empty[i] = true
+            pma.array[i] = nothing
         end
         i -= 1
         sum_freq += freq  
@@ -281,12 +279,11 @@ function _extend!(pma::PackedMemoryArray)
     pma.height += 1
     pma.t_d = (pma.t_h - pma.t_0) / pma.height
     pma.p_d = (pma.p_h - pma.p_0) / pma.height 
-    resize!(pma.empty, pma.capacity)
     resize!(pma.array, pma.capacity)
-    new_half_start = ceil(Int, pma.capacity / 2)
-    for i in new_half_start:pma.capacity
-        pma.empty[i] = true
-    end
+    # new_half_start = ceil(Int, pma.capacity / 2)
+    # for i in new_half_start:pma.capacity
+    #     pma.array[i] = nothing
+    # end
     return
 end
 

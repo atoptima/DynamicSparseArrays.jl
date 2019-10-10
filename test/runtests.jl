@@ -69,21 +69,28 @@ function main()
         end
     end
 
-    kv = Dict{Int, Float64}(rand(rng, 1:10000000000) => rand(rng, 1:0.1:10000) for i in 1:1000)
+    kv = Dict{Int, Float64}(rand(rng, 1:10000000000) => rand(rng, 1:0.1:10000) for i in 1:10000)
     keys_array = collect(keys(kv))
     values_array = collect(values(kv))
     pma = PackedMemoryArray(keys_array, values_array)
 
-    kv = Dict{Int, Float64}(rand(rng, 1:10000000000) => rand(rng, 1:0.1:10000) for i in 1:1000000)
-    @time begin 
-        insert(pma, kv)
-    end
-    for (k,v) in kv
-        if pma[k] != v
-            println("k = $k, v =$v, pma[k] = $(pma[k])")
-            error("failed")
+    k = 1
+    while k <= 500000
+        println("insert $k element")
+        kv = Dict{Int, Float64}(rand(rng, 1:10000000000) => rand(rng, 1:0.1:10000) for i in 1:k)
+        @time begin 
+            insert(pma, kv)
         end
+        k *= 10
     end
+
+
+    # for (k,v) in kv
+    #     if pma[k] != v
+    #         println("k = $k, v =$v, pma[k] = $(pma[k])")
+    #         error("failed")
+    #     end
+    # end
 
     #@btime test_insert_benchmark()
 
