@@ -88,7 +88,7 @@ function main()
 
     totaltime = @elapsed begin
         k = 1
-        while k <= 30
+        while k <= 60
             println("insert 100000 elements")
             @show pma.capacity
             kv = Dict{Int, Float64}(rand(rng, 1:10000000000) => rand(rng, 1:0.1:10000) for i in 1:100000)
@@ -99,21 +99,7 @@ function main()
         end
     end
 
-    for (cap, (n, time)) in pma.time_dict
-        println("Rebalance of $cap elems done $n times   time = $time.")
-    end
-
     println("Total time = $totaltime")
-
-
-    # for (k,v) in kv
-    #     if pma[k] != v
-    #         println("k = $k, v =$v, pma[k] = $(pma[k])")
-    #         error("failed")
-    #     end
-    # end
-
-    #@btime test_insert_benchmark()
 
 
     return

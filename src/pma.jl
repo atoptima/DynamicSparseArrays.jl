@@ -1,18 +1,11 @@
 hyperceil(x) = 2^ceil(Int,log2(x))
 hyperfloor(x) = 2^floor(Int,log2(x))
 
-# TODO
-# mutable struct Predictor
-#     cells::Array{Tuple{Int,Int,Int}}
-# end
-
-# function Predictor(nbcells)
-
-# end
-
 abstract type AbstractPredictor end
 
 struct NoPredictor <: AbstractPredictor end
+
+# Predictor : TODO later
 
 # Adaptative Packed Memory Array
 mutable struct PackedMemoryArray{K,T,P <: AbstractPredictor} <: AbstractArray{T,1}
@@ -31,7 +24,6 @@ mutable struct PackedMemoryArray{K,T,P <: AbstractPredictor} <: AbstractArray{T,
     p_d::Float64 # lower density treshold constant
     array::Vector{Union{Nothing,Tuple{K,T}}}
     predictor::P
-    time_dict::Dict{Int, Tuple{Int, Float64}}
 end
 
 function PackedMemoryArray{K,T}(capacity::Int) where {K,T}
@@ -47,7 +39,7 @@ function PackedMemoryArray{K,T}(capacity::Int) where {K,T}
         real_capacity, seg_capacity, nb_segs, element_counters, 0, 0, height, 
         t_h, t_0, p_h, p_0, t_d, p_d, 
         Vector{Union{Nothing,Tuple{K,T}}}(nothing, real_capacity),
-        NoPredictor(), Dict{Int, Tuple{Int, Float64}}()
+        NoPredictor()
     )
 end
 
@@ -74,7 +66,7 @@ function PackedMemoryArray(keys::Vector{K}, values::Vector{T}) where {K,T}
     element_counters[nb_full_seg + 1] = nb_elements % nb_segs
     pma = PackedMemoryArray(
         capacity, seg_capacity, nb_segs, element_counters, 0, 0, height, t_h, 
-        t_0, p_h, p_0, t_d, p_d, array, NoPredictor(), Dict{Int, Tuple{Int, Float64}}()
+        t_0, p_h, p_0, t_d, p_d, array, NoPredictor()
     )
     _even_rebalance!(pma, 1, nb_segs + 1, nb_elements)
     return pma
@@ -194,7 +186,6 @@ function _find(pma::PackedMemoryArray{K,T}, key::K) where {K,T}
 end
 
 function _insert(pma::PackedMemoryArray, key, value)
-    #println("\e[32m -------- insert ($key, $value)--------- \e[00m")
     (pos, val) = _find(pma, key)
     seg = _segidofcell(pma, pos)
     insertion_pos = pos
@@ -205,28 +196,25 @@ function _insert(pma::PackedMemoryArray, key, value)
     # insert the new key after the one found by the binary search
     nextemptycell = _nextemptycellinseg(pma, pos)
     if nextemptycell != 0
-        #println(">>> found empty cell @N $nextemptycell in segment $(_segidofcell(pma, nextemptycell))")
         _movecellstoright!(pma, pos+1, nextemptycell)
         pma.array[pos+1] = (key, value)
         insertion_pos += 1
     else
         previousemptycell = _previousemptycellinseg(pma, pos)
         if previousemptycell != 0
-            #println(">>> found empty cell @P $previousemptycell in segment $(_segidofcell(pma, previousemptycell))")
             _movecellstoleft!(pma, pos, previousemptycell)
             pma.array[pos] = (key, value)
         else
             error("No empty cell to insert a new element in the PMA.") # Should not occur thanks to density.
         end
     end
-    #println(">>>> ELEMENT INSERTED in segment $seg")
     pma.element_counters[seg] += 1
     _look_for_rebalance!(pma, insertion_pos)
     return true
 end
 
 # start included, end excluded
-@noinline function _even_rebalance!(pma, seg_window_start, seg_window_end, m)
+function _even_rebalance!(pma, seg_window_start, seg_window_end, m)
     window_start = (seg_window_start - 1) * pma.segment_capacity + 1
     window_end = (seg_window_end - 1) * pma.segment_capacity
     capacity = window_end - window_start + 1
@@ -261,7 +249,6 @@ end
             pma.array[j] = pma.array[i]
             pma.array[i] = nothing
         end
-        #println("---- moving $i to $j ($(_segidofcell(pma, j))).")
         pma.element_counters[seg] += 1
         i -= 1
         sum_freq += freq  
