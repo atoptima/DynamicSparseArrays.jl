@@ -29,9 +29,9 @@ mutable struct PackedMemoryArray{K,T,P <: AbstractPredictor} <: AbstractArray{T,
     p_0::Float64 # lower density treshold at leaves
     t_d::Float64 # upper density theshold constant
     p_d::Float64 # lower density treshold constant
-    #empty::Vector{Bool} #maybe should be replaced by a nothing ?
     array::Vector{Union{Nothing,Tuple{K,T}}}
     predictor::P
+    time_dict::Dict{Int, Tuple{Int, Float64}}
 end
 
 function PackedMemoryArray{K,T}(capacity::Int) where {K,T}
@@ -39,7 +39,7 @@ function PackedMemoryArray{K,T}(capacity::Int) where {K,T}
     nb_segs = hyperceil(capacity / seg_capacity)
     height = Int(log2(nb_segs))
     real_capacity = nb_segs * seg_capacity
-    t_h, t_0, p_h, p_0 = 0.92, 0.7, 0.3, 0.08
+    t_h, t_0, p_h, p_0 = 0.7, 0.92, 0.3, 0.08
     t_d = (t_h - t_0) / height
     p_d = (p_h - p_0) / height 
     element_counters = zeros(Int, nb_segs)
@@ -47,19 +47,19 @@ function PackedMemoryArray{K,T}(capacity::Int) where {K,T}
         real_capacity, seg_capacity, nb_segs, element_counters, 0, 0, height, 
         t_h, t_0, p_h, p_0, t_d, p_d, 
         Vector{Union{Nothing,Tuple{K,T}}}(nothing, real_capacity),
-        NoPredictor()
+        NoPredictor(), Dict{Int, Tuple{Int, Float64}}()
     )
 end
 
 function PackedMemoryArray(keys::Vector{K}, values::Vector{T}) where {K,T}
     @assert length(keys) == length(values)
-    t_h, t_0, p_h, p_0 = 0.92, 0.7, 0.3, 0.08
+    t_h, t_0, p_h, p_0 = 0.7, 0.92, 0.3, 0.08
     nb_elements = length(values)
-    min_capacity = floor(Int, nb_elements / p_h)
-    seg_capacity = ceil(Int, log2(min_capacity))
-    nb_segs = hyperceil(min_capacity / seg_capacity)
+    segment_size_fac = 1
+    capacity = 2^ceil(Int, log2(nb_elements/t_h))
+    nb_segs = Int(2^ceil(Int, log2(capacity/log2(capacity))) / segment_size_fac)
+    seg_capacity = Int(capacity / nb_segs)
     height = Int(log2(nb_segs))
-    capacity = nb_segs * seg_capacity
     t_d = (t_h - t_0) / height
     p_d = (p_h - p_0) / height 
     array = Vector{Union{Nothing,Tuple{K,T}}}(nothing, nb_elements)
@@ -74,10 +74,9 @@ function PackedMemoryArray(keys::Vector{K}, values::Vector{T}) where {K,T}
     element_counters[nb_full_seg + 1] = nb_elements % nb_segs
     pma = PackedMemoryArray(
         capacity, seg_capacity, nb_segs, element_counters, 0, 0, height, t_h, 
-        t_0, p_h, p_0, t_d, p_d, array, NoPredictor()
+        t_0, p_h, p_0, t_d, p_d, array, NoPredictor(), Dict{Int, Tuple{Int, Float64}}()
     )
     _even_rebalance!(pma, 1, nb_segs + 1, nb_elements)
-    #_debug_check_all_counters(pma)
     return pma
 end
 
@@ -87,7 +86,7 @@ end
 
 function _emptycell(pma::PackedMemoryArray, pos::Int)
     #@assert 1 <= pos <= pma.capacity
-    return pma.array[pos] == nothing
+    return pma.array[pos] === nothing
 end
 
 function _nextemptycellinseg(pma::PackedMemoryArray, from::Int)
@@ -197,6 +196,7 @@ end
 function _insert(pma::PackedMemoryArray, key, value)
     #println("\e[32m -------- insert ($key, $value)--------- \e[00m")
     (pos, val) = _find(pma, key)
+    seg = _segidofcell(pma, pos)
     insertion_pos = pos
     if _getkey(pma, pos) == key
         pma.array[pos] = (key, value)
@@ -207,18 +207,16 @@ function _insert(pma::PackedMemoryArray, key, value)
     if nextemptycell != 0
         #println(">>> found empty cell @N $nextemptycell in segment $(_segidofcell(pma, nextemptycell))")
         _movecellstoright!(pma, pos+1, nextemptycell)
-        seg = _segidofcell(pma, pos+1)
         pma.array[pos+1] = (key, value)
         insertion_pos += 1
     else
         previousemptycell = _previousemptycellinseg(pma, pos)
         if previousemptycell != 0
             #println(">>> found empty cell @P $previousemptycell in segment $(_segidofcell(pma, previousemptycell))")
-            seg = _segidofcell(pma, pos)
             _movecellstoleft!(pma, pos, previousemptycell)
             pma.array[pos] = (key, value)
         else
-            #error("No empty cell to insert a new element in the PMA.") # Should not occur thanks to density.
+            error("No empty cell to insert a new element in the PMA.") # Should not occur thanks to density.
         end
     end
     #println(">>>> ELEMENT INSERTED in segment $seg")
@@ -227,42 +225,11 @@ function _insert(pma::PackedMemoryArray, key, value)
     return true
 end
 
-# Should be in apma.jl
-# function _uneven_rebalance!(pma, window_start, window_end, m, p, t)
-#     capacity = window_end - window_start + 1
-#     if capacity == pma.segment_capacity
-#         # It is a leaf within the treshold, we stop
-#         return
-#     end
-#     half_cap = capacity / 2
-#     splitnum = max(half_cap * p, m - half_cap * t)
-#     # optvalue = 
-#     # do things 
-#     return
-# end
-
 # start included, end excluded
-function _even_rebalance!(pma, seg_window_start, seg_window_end, m)
-    #println("**************************")
-    # @show seg_window_start
-    # @show seg_window_end
+@noinline function _even_rebalance!(pma, seg_window_start, seg_window_end, m)
     window_start = (seg_window_start - 1) * pma.segment_capacity + 1
     window_end = (seg_window_end - 1) * pma.segment_capacity
     capacity = window_end - window_start + 1
-    # println("******* even rebalance *******")
-    # @show seg_window_start
-    # @show seg_window_end
-    # @show pma.segment_capacity
-    # @show pma.nb_segments
-    # @show pma.capacity
-    # @show window_start
-    # @show window_end
-    # @show capacity
-    # @show m
-    # @show _nbcells(pma,window_start,window_end)
-    # @show pma.array[window_start:window_end]
-    # @assert m == _nbcells(pma,window_start,window_end)
-    # println("******************************")
     if capacity == pma.segment_capacity
         # It is a leaf within the treshold, we stop
         return
@@ -309,16 +276,10 @@ function _look_for_rebalance!(pma::PackedMemoryArray, pos::Int)
     prev_seg_win_end = seg_of_pos
     nb_cells_left = 0
     nb_cells_right = 0
-    while height <= pma.height 
+    while height <= pma.height
         window_capacity = 2^height * pma.segment_capacity
         seg_window_start = ((seg_of_pos - 1) ÷ 2^height) * 2^height + 1
         seg_window_end = seg_window_start + 2^height
-        # println("**** rebalance ****")
-        # @show height
-        # @show pos
-        # @show window_start
-        # @show window_end
-        # println("********************")
         nb_cells_left += _nbcellsinseg(pma, seg_window_start, prev_seg_win_start)
         nb_cells_right += _nbcellsinseg(pma, prev_seg_win_end, seg_window_end)
         density = (nb_cells_left + nb_cells_right) / window_capacity
@@ -327,7 +288,6 @@ function _look_for_rebalance!(pma::PackedMemoryArray, pos::Int)
             p = pma.p_0 + pma.p_d * height
             nb_cells = nb_cells_left + nb_cells_right
             _even_rebalance!(pma, seg_window_start, seg_window_end, nb_cells)#, p, t)
-            #_debug_check_all_counters(pma)
             return
         end
         prev_seg_win_start = seg_window_start
@@ -337,7 +297,6 @@ function _look_for_rebalance!(pma::PackedMemoryArray, pos::Int)
     _extend!(pma)
     nb_cells = nb_cells_left + nb_cells_right
     _even_rebalance!(pma, 1, pma.nb_segments + 1, nb_cells)
-    #_debug_check_all_counters(pma)
     return
 end
 
@@ -364,17 +323,4 @@ end
 
 function Base.getindex(pma::PackedMemoryArray, key)
     return _find(pma, key)[2]
-end
-
-
-### Methods for debug purposes
-function _debug_check_all_counters(pma)
-    for (seg, val) in enumerate(pma.element_counters)
-        window_start = (seg - 1) * pma.segment_capacity + 1
-        window_end = (seg) * pma.segment_capacity - 1
-        println("segment $seg contains $(_nbcells(pma, window_start, window_end+1)) and val = $val")
-        @show pma.array[window_start:window_end]
-        @assert val == _nbcells(pma, window_start, window_end+1)
-    end
-    return
 end

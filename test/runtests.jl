@@ -37,11 +37,11 @@ end
 
 function main()
     #some_test_to_improve()
-    pma = PackedMemoryArray{Int,Float64}(100)
-    @show pma.capacity
-    @show pma.segment_capacity
-    @show pma.nb_segments
-    @show pma.height
+    #pma = PackedMemoryArray{Int,Float64}(100)
+    # @show pma.capacity
+    # @show pma.segment_capacity
+    # @show pma.nb_segments
+    # @show pma.height
 
     # @test pma[2] == 0
     # pma[2] = 1.5
@@ -68,22 +68,42 @@ function main()
             error("failed")
         end
     end
+    println("insert 100000 elements")
+    @show pma.capacity
+    kv = Dict{Int, Float64}(rand(rng, 1:10000000000) => rand(rng, 1:0.1:10000) for i in 1:100000)
+    @time begin 
+        insert(pma, kv)
+    end
+    for (k,v) in kv
+        if pma[k] != v
+            println("k = $k, v =$v, pma[k] = $(pma[k])")
+            error("failed")
+        end
+    end
 
-    kv = Dict{Int, Float64}(rand(rng, 1:10000000000) => rand(rng, 1:0.1:10000) for i in 1:10000)
+    kv = Dict{Int, Float64}(rand(rng, 1:10000000000) => rand(rng, 1:0.1:10000) for i in 1:100000)
     keys_array = collect(keys(kv))
     values_array = collect(values(kv))
     pma = PackedMemoryArray(keys_array, values_array)
 
-    k = 1
-    while k <= 4
-        println("insert 100000 elements")
-        @show pma.capacity
-        kv = Dict{Int, Float64}(rand(rng, 1:10000000000) => rand(rng, 1:0.1:10000) for i in 1:100000)
-        @time begin 
-            insert(pma, kv)
+    totaltime = @elapsed begin
+        k = 1
+        while k <= 30
+            println("insert 100000 elements")
+            @show pma.capacity
+            kv = Dict{Int, Float64}(rand(rng, 1:10000000000) => rand(rng, 1:0.1:10000) for i in 1:100000)
+            @time begin 
+                insert(pma, kv)
+            end
+            k += 1
         end
-        k += 1
     end
+
+    for (cap, (n, time)) in pma.time_dict
+        println("Rebalance of $cap elems done $n times   time = $time.")
+    end
+
+    println("Total time = $totaltime")
 
 
     # for (k,v) in kv
