@@ -5,11 +5,26 @@
 [![License: MPL 2.0](https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
 
 
-This package is a work in progress.
+Install the package :
+```
+] add DynamicSparseArrays
+```
 
-The goal is to implement Adaptative Packed Memory Array (APMA) and Packed Compressed Sparse Row Matrix (PCSR) data structures with the insert, delete, search, and SpMV operations.
+## Packed Memory Array
+
+```julia
+using DynamicSparseArrays
+keys = [1,2,3,5]
+values = [1.0, 2.4, 7.1, 1.1]
+pma = PackedMemoryArray(keys, values) # create the pma
+
+pma[78] = 1.5 # insert a value
+pma[2] # retrieve a value
+```
 
 ## References
+
+The goal is to implement Adaptative Packed Memory Array (APMA) and Packed Compressed Sparse Row Matrix (PCSR) data structures with the insert, delete, search, and SpMV operations.
 
 ### PCSR
 
