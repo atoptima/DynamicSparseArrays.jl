@@ -1,6 +1,3 @@
-hyperceil(x) = 2^ceil(Int,log2(x))
-hyperfloor(x) = 2^floor(Int,log2(x))
-
 abstract type AbstractPredictor end
 
 struct NoPredictor <: AbstractPredictor end
@@ -26,22 +23,23 @@ mutable struct PackedMemoryArray{K,T,P <: AbstractPredictor} <: AbstractArray{T,
     predictor::P
 end
 
-function PackedMemoryArray{K,T}(capacity::Int) where {K,T}
-    seg_capacity = ceil(Int, log2(capacity))
-    nb_segs = hyperceil(capacity / seg_capacity)
-    height = Int(log2(nb_segs))
-    real_capacity = nb_segs * seg_capacity
-    t_h, t_0, p_h, p_0 = 0.7, 0.92, 0.3, 0.08
-    t_d = (t_h - t_0) / height
-    p_d = (p_h - p_0) / height 
-    element_counters = zeros(Int, nb_segs)
-    return PackedMemoryArray(
-        real_capacity, seg_capacity, nb_segs, element_counters, 0, 0, height, 
-        t_h, t_0, p_h, p_0, t_d, p_d, 
-        Vector{Union{Nothing,Tuple{K,T}}}(nothing, real_capacity),
-        NoPredictor()
-    )
-end
+# This constructor should not be used
+# function PackedMemoryArray{K,T}(capacity::Int) where {K,T}
+#     seg_capacity = ceil(Int, log2(capacity))
+#     nb_segs = hyperceil(capacity / seg_capacity)
+#     height = Int(log2(nb_segs))
+#     real_capacity = nb_segs * seg_capacity
+#     t_h, t_0, p_h, p_0 = 0.7, 0.92, 0.3, 0.08
+#     t_d = (t_h - t_0) / height
+#     p_d = (p_h - p_0) / height 
+#     element_counters = zeros(Int, nb_segs)
+#     return PackedMemoryArray(
+#         real_capacity, seg_capacity, nb_segs, element_counters, 0, 0, height, 
+#         t_h, t_0, p_h, p_0, t_d, p_d, 
+#         Vector{Union{Nothing,Tuple{K,T}}}(nothing, real_capacity),
+#         NoPredictor()
+#     )
+# end
 
 function PackedMemoryArray(keys::Vector{K}, values::Vector{T}) where {K,T}
     @assert length(keys) == length(values)
@@ -140,17 +138,17 @@ function _nbcellsinseg(pma::PackedMemoryArray, from::Int, to::Int)
 end
 
 # from included, to excluded
-function _nbcells(pma::PackedMemoryArray, from::Int, to::Int)
-    #@assert 1 <= from <= to <= pma.capacity + 1
-    from >= to && return 0
-    nbcells = 0
-    for pos in from:to
-        if !_emptycell(pma, pos)
-            nbcells += 1
-        end
-    end
-    return nbcells
-end
+# function _nbcells(pma::PackedMemoryArray, from::Int, to::Int)
+#     #@assert 1 <= from <= to <= pma.capacity + 1
+#     from >= to && return 0
+#     nbcells = 0
+#     for pos in from:to
+#         if !_emptycell(pma, pos)
+#             nbcells += 1
+#         end
+#     end
+#     return nbcells
+# end
 
 # Binary search that returns the position of the key in the array
 function _find(pma::PackedMemoryArray{K,T}, key::K) where {K,T}
@@ -301,8 +299,8 @@ function _extend!(pma::PackedMemoryArray)
 end
 
 Base.ndims(pma::PackedMemoryArray) = 1
-Base.size(pma::PackedMemoryArray) = (pma.capacity,)
-Base.length(pma::PackedMemoryArray) = pma.nb_elements
+Base.size(pma::PackedMemoryArray) = (sum(pma.element_counters),)
+Base.length(pma::PackedMemoryArray) = sum(pma.element_counters)
 
 function Base.setindex!(pma::PackedMemoryArray, value, key)
     return _insert(pma, key, value)

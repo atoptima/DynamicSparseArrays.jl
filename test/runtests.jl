@@ -24,6 +24,10 @@ function pma_insertions()
     for (k,v) in kv3
         @test pma[k] == v
     end
+
+    @test ndims(pma) == 1
+    @test size(pma) == (length(kv3),)
+    @test length(pma) == length(kv3)
     return
 end
 
