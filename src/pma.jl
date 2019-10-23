@@ -306,3 +306,11 @@ function dynamicsparsevec(I::Vector{K}, V::Vector{T}, combine::Function) where {
 end
 
 dynamicsparsevec(I,V) = dynamicsparsevec(I,V,+)
+
+function Base.show(io::IO, pma::PackedMemoryArray{K,T,P}) where {K,T,P}
+    println(
+        io, pma.capacity, "-element ", typeof(pma), " with ", pma.nb_elements, 
+        " stored ", pma.nb_elements == 1 ? "entry." : "entries."
+    )
+    return
+end

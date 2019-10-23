@@ -1,6 +1,6 @@
 module DynamicSparseArrays
 
-export dynamicsparsevec
+export dynamicsparsevec, dynamicsparse
 
 include("pma.jl")
 include("pcsr.jl")

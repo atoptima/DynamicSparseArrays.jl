@@ -2,14 +2,13 @@ using DynamicSparseArrays, Test, Random
 
 rng = MersenneTwister(1234123);
 
-function dynsparsevec_instiation()
+function dynsparsevec_instantiation()
     I = [1, 2, 5, 5, 3, 10, 1, 8, 1, 5]
     V = [1.0, 3.5, 2.1, 8.5, 2.1, 1.1, 5.0, 7.8, 1.1, 2.0]
 
     vec = dynamicsparsevec(I,V)
 
-    @show typeof(vec)
-    @show vec
+    @test repr(vec) == "16-element DynamicSparseArrays.PackedMemoryArray{Int64,Float64,DynamicSparseArrays.NoPredictor} with 6 stored entries.\n"
 
     @test vec[1] == 1.0 + 1.1 + 5.0
     @test vec[2] == 3.5
@@ -60,9 +59,31 @@ function dynsparsevec_insertions()
     return
 end
 
-function main()
+function dynsparsematrix_instantiation()
+    I = [1, 4, 3, 5]
+    J = [4, 7, 18, 9]
+    V = [1, 2, -5, 3]
+    matrix = dynamicsparse(I,J,V)
+    @test matrix[1,4] == 1
+    @test matrix[4,7] == 2
+    @test matrix[3,18] == -5
+    @test matrix[5,9] == 3
+
+    I = [1, 1, 4, 3, 5, 1, 3, 1, 4]
+    J = [4, 3, 7, 18, 9, 3, 18, 4, 7]
+    V = [1, 8, 2, -5, 3, 2, 1, 1, 2]
+    matrix = dynamicsparse(I,J,V)
+    @test matrix[1,4] == 1 + 1
+    @test matrix[1,3] == 8 + 2
+    @test matrix[4,7] == 2 + 2
+    @test matrix[3,18] == -5 + 1
+    @test matrix[5,9] == 3
+    return
+end
+
+function pma()
     @testset "Instantiation (with multiple elements)" begin
-        dynsparsevec_instiation()
+        dynsparsevec_instantiation()
     end
     @testset "Insertions" begin
         dynsparsevec_insertions()
@@ -70,4 +91,11 @@ function main()
     return
 end
 
-main()
+function pcsr()
+    @testset "Instantiation (with multiple elements)" begin
+        dynsparsematrix_instantiation()
+    end
+end
+
+pma()
+pcsr()
