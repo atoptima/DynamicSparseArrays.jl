@@ -4,7 +4,7 @@ struct PackedCompressedSparseRow{K<:Integer,T,P<:AbstractPredictor}
 end
 
 function _dynamicsparse(I, J, V, combine)
-    p = sortperm(I)
+    p = sortperm(collect(zip(I,J)))
     permute!(I, p)
     permute!(J, p)
     permute!(V, p)
@@ -15,8 +15,32 @@ function _dynamicsparse(I, J, V, combine)
 
     write_pos = 1
     read_pos = 1
-    # prev_i = x
-    # prev_j =  
+    prev_i = I[read_pos]
+    prev_j = J[read_pos]
+    while read_pos < length(I)
+        read_pos += 1
+        cur_i = I[read_pos]
+        cur_j = J[read_pos]
+        if prev_i == cur_i && prev_j == cur_j
+            V[write_pos] = combine(V[write_pos], V[read_pos])
+        else
+            write_pos += 1
+            if write_pos < read_pos
+                I[write_pos] = cur_i
+                J[write_pos] = cur_j
+                V[write_pos] = V[read_pos]
+            end
+            prev_i = cur_i
+            prev_j = cur_j
+        end
+    end
+    resize!(I, write_pos)
+    resize!(J, write_pos)
+    resize!(V, write_pos)
+    @show I
+    @show J
+    @show V
+    # TODO 
 end
 
 function dynamicsparse(
