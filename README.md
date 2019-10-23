@@ -14,10 +14,11 @@ Install the package :
 
 ```julia
 using DynamicSparseArrays
-keys = [1,2,3,5]
-values = [1.0, 2.4, 7.1, 1.1]
-pma = PackedMemoryArray(keys, values) # create the pma
+I = [1, 10, 3, 5, 3]
+V = [1.0, 2.4, 7.1, 1.1, 1.0]
+pma = dynamicsparsevec(I, V) # create the pma
 
+pma[3] == 2.4 + 1.0 # true
 pma[78] = 1.5 # insert a value
 pma[2] # retrieve a value
 ```
