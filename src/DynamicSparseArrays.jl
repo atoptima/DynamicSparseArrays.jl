@@ -1,9 +1,9 @@
 module DynamicSparseArrays
 
-export PackedMemoryArray
+export dynamicsparsevec
 
 include("pma.jl")
-#include("pcsr.jl")
+include("pcsr.jl")
 
 end# module
 

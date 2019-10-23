@@ -136,7 +136,7 @@ function _find(pma::PackedMemoryArray{K,T}, key::K) where {K,T}
             elseif curkey < key
                 from = mid + 1
             else
-                return (i, pma.array[i][2])
+                return (i, pma.array[i])
             end
         end
     end
@@ -145,13 +145,13 @@ function _find(pma::PackedMemoryArray{K,T}, key::K) where {K,T}
         i -= 1
     end
     if i > 0
-        return (i, pma.array[i][2])
+        return (i, pma.array[i])
     end
-    return (0, zero(T))
+    return (0, nothing)
 end
 
 function _insert(pma::PackedMemoryArray, key, value)
-    (pos, val) = _find(pma, key)
+    (pos, _) = _find(pma, key)
     seg = _segidofcell(pma, pos)
     insertion_pos = pos
     if _getkey(pma, pos) == key
@@ -263,6 +263,46 @@ function Base.setindex!(pma::PackedMemoryArray, value, key)
     return _insert(pma, key, value)
 end
 
-function Base.getindex(pma::PackedMemoryArray, key)
-    return _find(pma, key)[2]
+function Base.getindex(pma::PackedMemoryArray{K,T,P}, key) where {K,T,P}
+    fpos, fpair = _find(pma, key)
+    fpair != nothing && fpair[1] == key && return fpair[2]
+    return zero(T)
 end
+
+function _dynamicsparsevec(I, V, combine)
+    p = sortperm(I)
+    permute!(I, p)
+    permute!(V, p)
+    write_pos = 1
+    read_pos = 1
+    prev_id = I[read_pos]
+    while read_pos < length(I)
+        read_pos += 1
+        cur_id = I[read_pos]
+        if prev_id == cur_id
+            V[write_pos] = combine(V[write_pos], V[read_pos])
+        else
+            write_pos += 1
+            if write_pos < read_pos
+                I[write_pos] = cur_id
+                V[write_pos] = V[read_pos]
+            end
+        end
+        prev_id = cur_id
+    end
+    resize!(I, write_pos)
+    resize!(V, write_pos)
+    return PackedMemoryArray(I, V)
+end 
+
+function dynamicsparsevec(I::Vector{K}, V::Vector{T}, combine::Function) where {T,K}
+    applicable(zero, T) || 
+        throw(ArgumentError("cannot apply method zero over $(T)"))
+    length(I) == length(V) ||
+        throw(ArgumentError("ids & nonzeros vectors must have same length."))
+    length(I) > 0 ||
+        throw(ArgumentError("vectors cannot be empty."))
+    return _dynamicsparsevec(Vector(I), Vector(V), combine)
+end
+
+dynamicsparsevec(I,V) = dynamicsparsevec(I,V,+)
