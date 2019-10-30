@@ -96,6 +96,34 @@ function ppma_creation()
         @test key == DynamicSparseArrays.semaphore_key(Int)
         @test sem_nb == id
     end
+
+    keys = [[1, 2, 3, 1, 2], [2, 6, 7, 7, 5], [1, 6, 8, 2, 1]]
+    values = [[2, 3, 4, 1, 1], [2, 4, 5, 1, 1], [3, 5, 7, 1, 1]]
+    ppma = PartitionedPackedMemoryArray(keys, values)
+    @test nbpartitions(ppma) == 3
+
+    for (id, pos) in enumerate(ppma.semaphores)
+        (key, sem_nb) = ppma.pma.array[pos]
+        @test key == DynamicSparseArrays.semaphore_key(Int)
+        @test sem_nb == id
+    end
+
+    @show keys
+    @show values
+    @show ppma.pma.array
+
+    prev_key = -1 # key of semaphore is 0
+    sum_val = 0
+    for couple in ppma.pma.array
+        if couple != nothing
+            (key, value) = couple
+            if key != 0
+                @test prev_key < key
+                sum_val += value
+            end
+        end
+    end
+    @test sum_val == sum(sum(values))
     return
 end
 

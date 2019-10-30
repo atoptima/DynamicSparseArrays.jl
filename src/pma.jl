@@ -30,8 +30,34 @@ function PackedMemoryArray(keys::Vector{K}, values::Vector{T}) where {K,T}
     return _pma(keys, values)
 end
 
-function _pma(keys::Vector{K}, values::Vector{T}) where {K,T}
+function _prepare_keys_vals!(keys::Vector{K}, values::Vector{T}, combine::Function) where {K,T}
     @assert length(keys) == length(values)
+    p = sortperm(keys)
+    permute!(keys, p)
+    permute!(values, p)
+    write_pos = 1
+    read_pos = 1
+    prev_id = keys[read_pos]
+    while read_pos < length(keys)
+        read_pos += 1
+        cur_id = keys[read_pos]
+        if prev_id == cur_id
+            values[write_pos] = combine(values[write_pos], values[read_pos])
+        else
+            write_pos += 1
+            if write_pos < read_pos
+                keys[write_pos] = cur_id
+                values[write_pos] = values[read_pos]
+            end
+        end
+        prev_id = cur_id
+    end
+    resize!(keys, write_pos)
+    resize!(values, write_pos)
+    return
+end
+
+function _pma(keys::Vector{K}, values::Vector{T}) where {K,T}
     t_h, t_0, p_h, p_0 = 0.7, 0.92, 0.3, 0.08
     nb_elements = length(values)
     segment_size_fac = 1
@@ -276,28 +302,7 @@ function Base.getindex(pma::PackedMemoryArray{K,T,P}, key) where {K,T,P}
 end
 
 function _dynamicsparsevec(I, V, combine)
-    p = sortperm(I)
-    permute!(I, p)
-    permute!(V, p)
-    write_pos = 1
-    read_pos = 1
-    prev_id = I[read_pos]
-    while read_pos < length(I)
-        read_pos += 1
-        cur_id = I[read_pos]
-        if prev_id == cur_id
-            V[write_pos] = combine(V[write_pos], V[read_pos])
-        else
-            write_pos += 1
-            if write_pos < read_pos
-                I[write_pos] = cur_id
-                V[write_pos] = V[read_pos]
-            end
-        end
-        prev_id = cur_id
-    end
-    resize!(I, write_pos)
-    resize!(V, write_pos)
+    _prepare_keys_vals!(I, V, combine)
     return PackedMemoryArray(I, V)
 end 
 
@@ -330,8 +335,7 @@ end
 nbpartitions(ppma::PartitionedPma) = length(ppma.semaphores)
 semaphore_key(::Type{K}) where {K<:Integer} = zero(K)
 
-# WARNING : We assume that each partition contains unique keys and is sorted
-function PartitionedPackedMemoryArray(keys::Vector{Vector{K}}, values::Vector{Vector{T}}) where {K,T}
+function PartitionedPackedMemoryArray(keys::Vector{Vector{K}}, values::Vector{Vector{T}}, combine::Function = +) where {K,T}
     nb_semaphores = length(keys)
     @assert nb_semaphores == length(values)
     ppma_keys = Vector{K}()
@@ -341,8 +345,11 @@ function PartitionedPackedMemoryArray(keys::Vector{Vector{K}}, values::Vector{Ve
         push!(ppma_keys, semaphore_key(K))
         push!(ppma_values, T(semaphore_id)) # This is why T <: Real
         # Create the column
-        push!(ppma_keys, keys[semaphore_id]...)
-        push!(ppma_values, values[semaphore_id]...)
+        nkeys = Vector(keys[semaphore_id])
+        nvalues = Vector(values[semaphore_id])
+        _prepare_keys_vals!(nkeys, nvalues, combine)
+        push!(ppma_keys, nkeys...)
+        push!(ppma_values, nvalues...)
     end
     pma = _pma(ppma_keys, ppma_values)
     semaphores = zeros(Int, nb_semaphores)
