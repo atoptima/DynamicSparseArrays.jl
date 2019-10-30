@@ -24,6 +24,13 @@ mutable struct PackedMemoryArray{K,T,P <: AbstractPredictor} <: AbstractArray{T,
 end
 
 function PackedMemoryArray(keys::Vector{K}, values::Vector{T}) where {K,T}
+    p = sortperm(keys)
+    permute!(keys, p)
+    permute!(values, p)
+    return _pma(keys, values)
+end
+
+function _pma(keys::Vector{K}, values::Vector{T}) where {K,T}
     @assert length(keys) == length(values)
     t_h, t_0, p_h, p_0 = 0.7, 0.92, 0.3, 0.08
     nb_elements = length(values)
@@ -34,18 +41,17 @@ function PackedMemoryArray(keys::Vector{K}, values::Vector{T}) where {K,T}
     height = Int(log2(nb_segs))
     t_d = (t_h - t_0) / height
     p_d = (p_h - p_0) / height 
-    array = Vector{Union{Nothing,Tuple{K,T}}}(nothing, nb_elements)
+    array = Vector{Union{Nothing,Tuple{K,T}}}(nothing, capacity)
     for i in 1:nb_elements
         array[i] = (keys[i], values[i])
     end
-    sort!(array, by = e -> e[1])
-    resize!(array, capacity)
     pma = PackedMemoryArray(
         capacity, seg_capacity, nb_segs, nb_elements, 0, 0, height, t_h, 
         t_0, p_h, p_0, t_d, p_d, array, NoPredictor()
     )
     _even_rebalance!(pma, 1, capacity, nb_elements)
     return pma
+    return 
 end
 
 function _segidofcell(pma::PackedMemoryArray, pos::Int)
@@ -313,4 +319,38 @@ function Base.show(io::IO, pma::PackedMemoryArray{K,T,P}) where {K,T,P}
         " stored ", pma.nb_elements == 1 ? "entry." : "entries."
     )
     return
+end
+
+
+mutable struct PartitionedPma{K<:Integer,T<:Real} <: AbstractArray{T,1}
+    semaphores::Vector{Int} # pos of the semaphore in the pma
+    pma::PackedMemoryArray{K,T,NoPredictor}
+end
+
+nbpartitions(ppma::PartitionedPma) = length(ppma.semaphores)
+semaphore_key(::Type{K}) where {K<:Integer} = zero(K)
+
+# WARNING : We assume that each partition contains unique keys and is sorted
+function PartitionedPackedMemoryArray(keys::Vector{Vector{K}}, values::Vector{Vector{T}}) where {K,T}
+    nb_semaphores = length(keys)
+    @assert nb_semaphores == length(values)
+    ppma_keys = Vector{K}()
+    ppma_values = Vector{T}()
+    for semaphore_id in 1:nb_semaphores
+        # Insert the semaphore 
+        push!(ppma_keys, semaphore_key(K))
+        push!(ppma_values, T(semaphore_id)) # This is why T <: Real
+        # Create the column
+        push!(ppma_keys, keys[semaphore_id]...)
+        push!(ppma_values, values[semaphore_id]...)
+    end
+    pma = _pma(ppma_keys, ppma_values)
+    semaphores = zeros(Int, nb_semaphores)
+    for (pos, pair) in enumerate(pma.array)
+        if pair != nothing && pair[1] == semaphore_key(K)
+            id = Int(pair[2])
+            semaphores[id] = pos
+        end
+    end
+    return PartitionedPma(semaphores, pma)
 end

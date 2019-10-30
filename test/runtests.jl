@@ -60,24 +60,42 @@ function dynsparsevec_insertions()
 end
 
 function dynsparsematrix_instantiation()
-    I = [1, 4, 3, 5]
-    J = [4, 7, 18, 9]
-    V = [1, 2, -5, 3]
-    matrix = dynamicsparse(I,J,V)
-    @test matrix[1,4] == 1
-    @test matrix[4,7] == 2
-    @test matrix[3,18] == -5
-    @test matrix[5,9] == 3
+    # I = [1, 4, 3, 5]
+    # J = [4, 7, 18, 9]
+    # V = [1, 2, -5, 3]
+    # matrix = dynamicsparse(I,J,V)
+    # @test matrix[1,4] == 1
+    # @test matrix[4,7] == 2
+    # @test matrix[3,18] == -5
+    # @test matrix[5,9] == 3
 
-    I = [1, 1, 4, 3, 5, 1, 3, 1, 4]
-    J = [4, 3, 7, 18, 9, 3, 18, 4, 7]
-    V = [1, 8, 2, -5, 3, 2, 1, 1, 2]
+    I = [1, 1, 2, 4, 3, 5, 1, 3, 1, 5, 1, 5, 4]
+    J = [4, 3, 3, 7, 18, 9, 3, 18, 4, 2, 3, 1, 7]
+    V = [1, 8, 10, 2, -5, 3, 2, 1, 1, 1, 5, 3, 2]
     matrix = dynamicsparse(I,J,V)
     @test matrix[1,4] == 1 + 1
     @test matrix[1,3] == 8 + 2
     @test matrix[4,7] == 2 + 2
     @test matrix[3,18] == -5 + 1
     @test matrix[5,9] == 3
+    @test matrix[5,2] == 1
+    @test matrix[5,1] == 3
+    @test matrix[2,3] == 10
+    @test matrix[1,3] == 5
+    return
+end
+
+function ppma_creation()
+    keys = [[1, 2, 3], [2, 6, 7], [1, 6, 8]]
+    values = [[2, 3, 4], [2, 4, 5], [3, 5, 7]]
+    ppma = PartitionedPackedMemoryArray(keys, values)
+    @test nbpartitions(ppma) == 3
+
+    for (id, pos) in enumerate(ppma.semaphores)
+        (key, sem_nb) = ppma.pma.array[pos]
+        @test key == DynamicSparseArrays.semaphore_key(Int)
+        @test sem_nb == id
+    end
     return
 end
 
@@ -91,6 +109,13 @@ function pma()
     return
 end
 
+function ppma()
+    @testset "Creation of a partitionned pma" begin
+        ppma_creation()
+    end
+
+end
+
 function pcsr()
     @testset "Instantiation (with multiple elements)" begin
         dynsparsematrix_instantiation()
@@ -98,4 +123,6 @@ function pcsr()
 end
 
 pma()
+ppma()
+exit()
 pcsr()

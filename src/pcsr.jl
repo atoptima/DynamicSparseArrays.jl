@@ -1,17 +1,13 @@
-struct PackedCompressedSparseRow{K<:Integer,T,P<:AbstractPredictor}
+struct PackedCompressedSparseColumn{K<:Integer,T,P<:AbstractPredictor}
     colptr::Vector{K}      # Column i is in colptr[i]:(colptr[i+1]-1)  
     nzval::PackedMemoryArray{K,T,P}
 end
 
-function _dynamicsparse(I, J, V, combine)
-    p = sortperm(collect(zip(I,J)))
+function _dynamicsparse(I::Vector{K}, J::Vector{K}, V::Vector{T}, combine) where {K,T}
+    p = sortperm(collect(zip(J,I))) # Columns first
     permute!(I, p)
     permute!(J, p)
     permute!(V, p)
-
-    @show I
-    @show J
-    @show V
 
     write_pos = 1
     read_pos = 1
@@ -34,12 +30,31 @@ function _dynamicsparse(I, J, V, combine)
             prev_j = cur_j
         end
     end
-    resize!(I, write_pos)
+    resize!(I, write_pos) 
     resize!(J, write_pos)
     resize!(V, write_pos)
-    @show I
-    @show J
-    @show V
+
+    rows_keys = Vector{Vector{K}}()
+    values = Vector{Vector{T}}()
+    i = 1
+    prev_col = J[1]
+    while i <= length(I)
+        cur_col = J[i]
+        if prev_col != cur_col || i == 1
+            push!(rows_keys, Vector{K}())
+            push!(values, Vector{K}())
+        end
+        push!(rows_keys[end], I[i])
+        push!(values[end], V[i])
+        prev_col = cur_col
+        i += 1
+    end
+
+    ppma = PartitionedPackedMemoryArray(rows_keys, values)
+
+    #@show ppma.semaphores
+
+    #exit()
     # TODO 
 end
 
