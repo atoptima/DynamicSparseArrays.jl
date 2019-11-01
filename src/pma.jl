@@ -189,10 +189,6 @@ function _insert!(pma::PackedMemoryArray{K,T}, key::K, value::T, from::Int, to::
     (pos, _) = _find(pma, key, from, to)
     seg_start = (_segidofcell(pma, pos) - 1) * pma.segment_capacity + 1
     seg_end = _segidofcell(pma, pos) * pma.segment_capacity
-    println("\e[32m insert $key \e[00m")
-    @show seg_start, pos, seg_end
-    @show pma.array[seg_start:seg_end]
-    println("-------------")
     insertion_pos = pos
     if _getkey(pma, pos) == key
         pma.array[pos] = (key, value)
@@ -243,33 +239,24 @@ end
 
 # start included, end included
 function _spread!(array, window_start, window_end, m)
-    println("--------")
-    @show array[window_start:window_end]
-
     capacity = window_end - window_start + 1
     nb_empty_cells = capacity - m
     empty_cell_freq = capacity / nb_empty_cells
-
-    # The first empty cell is the last one
-    #previous_empty_cell = window_end
-    nb_empty_cells -= 1
-    next_empty_cell = window_start + floor(nb_empty_cells * empty_cell_freq)
+    next_empty_cell = window_start + floor(nb_empty_cells * empty_cell_freq) - 1
     i = window_start + m - 1
-    j = window_end - 1
+    j = window_end
     @inbounds while i != j && i >= window_start
-        println("i = $i & j = $j")
         if j == next_empty_cell
             nb_empty_cells -= 1
-            next_empty_cell = window_start + floor(nb_empty_cells * empty_cell_freq)
+            next_empty_cell = window_start + floor(nb_empty_cells * empty_cell_freq) - 1
+            j -= 1
+        else
+            array[j] = array[i]
+            array[i] = nothing
+            i -= 1
             j -= 1
         end
-        array[j] = array[i]
-        array[i] = nothing
-        i -= 1
-        j -= 1
     end
-    @show array[window_start:window_end]
-    println("-------------")
     return
 end
 
@@ -440,35 +427,28 @@ function Base.setindex!(ppma::PartitionedPma{K,T}, value, partition, key) where 
 end
 
 function _spread!(array, window_start, window_end, m, semaphores)
-    println("--------")
-    @show array[window_start:window_end]
     capacity = window_end - window_start + 1
     nb_empty_cells = capacity - m
     empty_cell_freq = capacity / nb_empty_cells
-
-    # The first empty cell is the last one
-    #previous_empty_cell = window_end
-    nb_empty_cells -= 1
-    next_empty_cell = window_start + floor(nb_empty_cells * empty_cell_freq)
+    next_empty_cell = window_start + floor(nb_empty_cells * empty_cell_freq) - 1
     i = window_start + m - 1
-    j = window_end - 1
-    @inbounds while j > i && i >= window_start
+    j = window_end
+    @inbounds while i != j && i >= window_start
         if j == next_empty_cell
             nb_empty_cells -= 1
-            next_empty_cell = window_start + floor(nb_empty_cells * empty_cell_freq)
+            next_empty_cell = window_start + floor(nb_empty_cells * empty_cell_freq) - 1
+            j -= 1
+        else
+            array[j] = array[i]
+            array[i] = nothing
+            (key, val) = array[j]
+            if key == semaphore_key(typeof(key))
+                semaphores[Int(val)] = j
+            end
+            i -= 1
             j -= 1
         end
-        array[j] = array[i]
-        array[i] = nothing
-        (key, val) = array[j]
-        if key == semaphore_key(typeof(key))
-            semaphores[Int(val)] = j
-        end
-        i -= 1
-        j -= 1
     end
-    @show array[window_start:window_end]
-    println("---------")
     return
 end
 
@@ -479,15 +459,15 @@ function _even_rebalance!(ppma::PartitionedPma, window_start, window_end, nbcell
         return
     end
 
-    println("\e[31m PPM even rebalance  ($window_start to $window_end )\e[00m")
-    if window_start <= 3403 <= window_end
-        println("\e[41m *** (density = $(nbcells / (window_end - window_start + 1))) \e[00m")
-        @show ppma.pma.array[window_start:window_end]
-    end
+    # println("\e[31m PPM even rebalance  ($window_start to $window_end )\e[00m")
+    # if window_start <= 3403 <= window_end
+    #     println("\e[41m *** (density = $(nbcells / (window_end - window_start + 1))) \e[00m")
+    #     @show ppma.pma.array[window_start:window_end]
+    # end
     _pack!(ppma.pma.array, window_start, window_end, nbcells)
     _spread!(ppma.pma.array, window_start, window_end, nbcells, ppma.semaphores)
-    if window_start <= 3403 <= window_end
-        @show ppma.pma.array[window_start:window_end]
-    end
+    # if window_start <= 3403 <= window_end
+    #     @show ppma.pma.array[window_start:window_end]
+    # end
     return
 end
