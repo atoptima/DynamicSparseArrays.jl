@@ -77,7 +77,6 @@ function _pma(keys::Vector{K}, values::Vector{T}) where {K,T}
     )
     _even_rebalance!(pma, 1, capacity, nb_elements)
     return pma
-    return 
 end
 
 function _segidofcell(pma::PackedMemoryArray, pos::Int)
@@ -90,7 +89,7 @@ function _emptycell(pma::PackedMemoryArray, pos::Int)
 end
 
 function _nextemptycellinseg(pma::PackedMemoryArray, from::Int)
-    seg_end = _segidofcell(pma, from) * pma.segment_capacity - 1
+    seg_end = _segidofcell(pma, from) * pma.segment_capacity
     pos = from + 1
     while pos <= seg_end
         _emptycell(pma, pos) && return pos
@@ -138,7 +137,7 @@ end
 
 # from included, to excluded
 function _nbcells(pma::PackedMemoryArray, from::Int, to::Int)
-    #@assert 1 <= from <= to <= pma.capacity + 1
+    @assert to <= pma.capacity + 1
     from >= to && return 0
     nbcells = 0
     for pos in from:(to-1)
@@ -149,10 +148,8 @@ function _nbcells(pma::PackedMemoryArray, from::Int, to::Int)
     return nbcells
 end
 
-# Binary search that returns the position of the key in the array
-function _find(pma::PackedMemoryArray{K,T}, key::K) where {K,T}
-    from = 1
-    to = length(pma.array)
+# from included, to included
+function _find(pma::PackedMemoryArray{K,T}, key::K, from::Int, to::Int) where {K,T}
     while from <= to
         mid = (from + to) ÷ 2
         i = mid
@@ -182,14 +179,26 @@ function _find(pma::PackedMemoryArray{K,T}, key::K) where {K,T}
     return (0, nothing)
 end
 
-function _insert(pma::PackedMemoryArray, key, value)
-    (pos, _) = _find(pma, key)
-    seg = _segidofcell(pma, pos)
+# Binary search that returns the position of the key in the array
+function _find(pma::PackedMemoryArray{K,T}, key::K) where {K,T}
+    return _find(pma, key, 1, length(pma.array))
+end
+
+# Insert an element between from and to included
+function _insert!(pma::PackedMemoryArray{K,T}, key::K, value::T, from::Int, to::Int) where {K,T}
+    (pos, _) = _find(pma, key, from, to)
+    seg_start = (_segidofcell(pma, pos) - 1) * pma.segment_capacity + 1
+    seg_end = _segidofcell(pma, pos) * pma.segment_capacity
+    println("\e[32m insert $key \e[00m")
+    @show seg_start, pos, seg_end
+    @show pma.array[seg_start:seg_end]
+    println("-------------")
     insertion_pos = pos
     if _getkey(pma, pos) == key
         pma.array[pos] = (key, value)
-        return false
+        return (insertion_pos, false)
     end
+
     # insert the new key after the one found by the binary search
     nextemptycell = _nextemptycellinseg(pma, pos)
     if nextemptycell != 0
@@ -206,44 +215,73 @@ function _insert(pma::PackedMemoryArray, key, value)
         end
     end
     pma.nb_elements += 1
-    _look_for_rebalance!(pma, insertion_pos)
-    return true
+    return (insertion_pos, true)
+end
+
+function _insert!(pma::PackedMemoryArray{K,T}, key::K, value::T) where {K,T}
+    return _insert!(pma, key, value, 1, length(pma.array))
 end
 
 # start included, end included
-function _even_rebalance!(pma, window_start, window_end, m)
+function _pack!(array, window_start, window_end, m)
+    i = window_start
+    j = window_start
+    @inbounds while i < window_start + m
+        if array[j] === nothing # empty cell
+            j += 1
+            continue
+        end
+        if i < j
+            array[i] = array[j]
+            array[j] = nothing
+        end
+        i += 1
+        j += 1
+    end
+    return
+end
+
+# start included, end included
+function _spread!(array, window_start, window_end, m)
+    println("--------")
+    @show array[window_start:window_end]
+
+    capacity = window_end - window_start + 1
+    nb_empty_cells = capacity - m
+    empty_cell_freq = capacity / nb_empty_cells
+
+    # The first empty cell is the last one
+    #previous_empty_cell = window_end
+    nb_empty_cells -= 1
+    next_empty_cell = window_start + floor(nb_empty_cells * empty_cell_freq)
+    i = window_start + m - 1
+    j = window_end - 1
+    @inbounds while i != j && i >= window_start
+        println("i = $i & j = $j")
+        if j == next_empty_cell
+            nb_empty_cells -= 1
+            next_empty_cell = window_start + floor(nb_empty_cells * empty_cell_freq)
+            j -= 1
+        end
+        array[j] = array[i]
+        array[i] = nothing
+        i -= 1
+        j -= 1
+    end
+    @show array[window_start:window_end]
+    println("-------------")
+    return
+end
+
+# start included, end included
+function _even_rebalance!(pma::PackedMemoryArray, window_start, window_end, m)
     capacity = window_end - window_start + 1
     if capacity == pma.segment_capacity
         # It is a leaf within the treshold, we stop
         return
     end
-    freq = capacity / m
-    i = window_start
-    j = window_start
-    @inbounds while i < window_start + m
-        if _emptycell(pma, j)
-            j += 1
-            continue
-        end
-        if i < j
-            pma.array[i] = pma.array[j]
-            pma.array[j] = nothing
-        end
-        i += 1
-        j += 1
-    end
-    i -= 1
-    sum_freq = 0
-    @inbounds while i >= window_start
-        j = window_end - floor(Int, sum_freq)
-        seg = _segidofcell(pma, j)
-        if i != j
-            pma.array[j] = pma.array[i]
-            pma.array[i] = nothing
-        end
-        i -= 1
-        sum_freq += freq  
-    end
+    _pack!(pma.array, window_start, window_end, m)
+    _spread!(pma.array, window_start, window_end, m)
     return
 end
 
@@ -264,8 +302,7 @@ function _look_for_rebalance!(pma::PackedMemoryArray, pos::Int)
         if density <= t
             p = pma.p_0 + pma.p_d * height
             nb_cells = nb_cells_left + nb_cells_right
-            _even_rebalance!(pma, win_start, win_end, nb_cells)#, p, t)
-            return
+            return win_start, win_end, nb_cells
         end
         prev_win_start = win_start
         prev_win_end = win_end
@@ -273,8 +310,7 @@ function _look_for_rebalance!(pma::PackedMemoryArray, pos::Int)
     end
     _extend!(pma)
     nb_cells = nb_cells_left + nb_cells_right
-    _even_rebalance!(pma, 1, pma.capacity, nb_cells)
-    return
+    return 1, pma.capacity, nb_cells
 end
 
 function _extend!(pma::PackedMemoryArray)
@@ -292,7 +328,13 @@ Base.size(pma::PackedMemoryArray) = (pma.nb_elements,)
 Base.length(pma::PackedMemoryArray) = pma.nb_elements
 
 function Base.setindex!(pma::PackedMemoryArray, value, key)
-    return _insert(pma, key, value)
+    insertion_pos, rebalance = _insert!(pma, key, value)
+    if rebalance
+        win_start, win_end, nbcells = _look_for_rebalance!(pma, insertion_pos)
+        _even_rebalance!(pma, win_start, win_end, nbcells)
+        return true
+    end
+    return false
 end
 
 function Base.getindex(pma::PackedMemoryArray{K,T,P}, key) where {K,T,P}
@@ -326,9 +368,10 @@ function Base.show(io::IO, pma::PackedMemoryArray{K,T,P}) where {K,T,P}
     return
 end
 
-
-mutable struct PartitionedPma{K<:Integer,T<:Real} <: AbstractArray{T,1}
+mutable struct PartitionedPma{K<:Integer,T<:Real}
+    nb_partitions::Int
     semaphores::Vector{Int} # pos of the semaphore in the pma
+    #nb_elements_in_partition::Vector{Int} # nb elements after each semaphore
     pma::PackedMemoryArray{K,T,NoPredictor}
 end
 
@@ -340,6 +383,7 @@ function PartitionedPackedMemoryArray(keys::Vector{Vector{K}}, values::Vector{Ve
     @assert nb_semaphores == length(values)
     ppma_keys = Vector{K}()
     ppma_values = Vector{T}()
+    ppma_elems = Vector{T}()
     for semaphore_id in 1:nb_semaphores
         # Insert the semaphore 
         push!(ppma_keys, semaphore_key(K))
@@ -359,5 +403,91 @@ function PartitionedPackedMemoryArray(keys::Vector{Vector{K}}, values::Vector{Ve
             semaphores[id] = pos
         end
     end
-    return PartitionedPma(semaphores, pma)
+    return PartitionedPma(nb_semaphores, semaphores, pma)
+end
+
+Base.ndims(pma::PartitionedPma) = 2
+Base.size(pma::PartitionedPma) = (10000, 100000)
+# Base.length(pma::PartitionedPma) = pma.nb_elements
+
+function _find(ppma, partition, key)
+    from = ppma.semaphores[partition]
+    to = length(ppma.pma.array) 
+    if partition != ppma.nb_partitions
+        to = ppma.semaphores[partition + 1] - 1
+    end
+    return _find(ppma.pma, key, from, to)
+end
+
+function Base.getindex(ppma::PartitionedPma{K,T}, partition, key) where {K,T}
+    fpos, fpair = _find(ppma, partition, key)
+    fpair != nothing && fpair[1] == key && return fpair[2]
+    return zero(T)
+end
+
+function Base.setindex!(ppma::PartitionedPma{K,T}, value, partition, key) where {K,T}
+    from = ppma.semaphores[partition]
+    to = length(ppma.pma.array) 
+    if partition != ppma.nb_partitions
+        to = ppma.semaphores[partition + 1] - 1
+    end
+    insertion_pos, rebalance = _insert!(ppma.pma, key, value, from, to)
+    if rebalance
+        win_start, win_end, nbcells = _look_for_rebalance!(ppma.pma, insertion_pos)
+        _even_rebalance!(ppma, win_start, win_end, nbcells)
+    end
+    return 
+end
+
+function _spread!(array, window_start, window_end, m, semaphores)
+    println("--------")
+    @show array[window_start:window_end]
+    capacity = window_end - window_start + 1
+    nb_empty_cells = capacity - m
+    empty_cell_freq = capacity / nb_empty_cells
+
+    # The first empty cell is the last one
+    #previous_empty_cell = window_end
+    nb_empty_cells -= 1
+    next_empty_cell = window_start + floor(nb_empty_cells * empty_cell_freq)
+    i = window_start + m - 1
+    j = window_end - 1
+    @inbounds while j > i && i >= window_start
+        if j == next_empty_cell
+            nb_empty_cells -= 1
+            next_empty_cell = window_start + floor(nb_empty_cells * empty_cell_freq)
+            j -= 1
+        end
+        array[j] = array[i]
+        array[i] = nothing
+        (key, val) = array[j]
+        if key == semaphore_key(typeof(key))
+            semaphores[Int(val)] = j
+        end
+        i -= 1
+        j -= 1
+    end
+    @show array[window_start:window_end]
+    println("---------")
+    return
+end
+
+function _even_rebalance!(ppma::PartitionedPma, window_start, window_end, nbcells)
+    capacity = window_end - window_start + 1
+    if capacity == ppma.pma.segment_capacity
+        # It is a leaf within the treshold, we stop
+        return
+    end
+
+    println("\e[31m PPM even rebalance  ($window_start to $window_end )\e[00m")
+    if window_start <= 3403 <= window_end
+        println("\e[41m *** (density = $(nbcells / (window_end - window_start + 1))) \e[00m")
+        @show ppma.pma.array[window_start:window_end]
+    end
+    _pack!(ppma.pma.array, window_start, window_end, nbcells)
+    _spread!(ppma.pma.array, window_start, window_end, nbcells, ppma.semaphores)
+    if window_start <= 3403 <= window_end
+        @show ppma.pma.array[window_start:window_end]
+    end
+    return
 end

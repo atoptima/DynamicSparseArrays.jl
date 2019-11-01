@@ -30,7 +30,7 @@ function dynsparsevec_instantiation()
 end
 
 
-function dynsparsevec_insertions()
+function dynsparsevec_insertions_and_gets()
     kv1 = Dict{Int, Float64}(
         rand(rng, 1:10000000000) => rand(rng, 1:0.1:10000) for i in 1:1000000
     )
@@ -108,10 +108,7 @@ function ppma_creation()
         @test sem_nb == id
     end
 
-    @show keys
-    @show values
-    @show ppma.pma.array
-
+    # Check if order is respected inside each partition
     prev_key = -1 # key of semaphore is 0
     sum_val = 0
     for couple in ppma.pma.array
@@ -121,9 +118,55 @@ function ppma_creation()
                 @test prev_key < key
                 sum_val += value
             end
+            prev_key = key
         end
     end
     @test sum_val == sum(sum(values))
+    return
+end
+
+function ppma_instance(nbpartitions)
+    partitions = Vector{Dict{Int, Float64}}()
+    for p in 1:nbpartitions
+        push!(partitions, Dict{Int, Float64}( 
+            rand(rng, 1:10000) => rand(rng, 1:0.1:100) for i in 10:rand(rng, 20:1000)
+        ))
+    end
+    return partitions
+end
+
+function ppma_insertions_and_gets()
+    nbpartitions = 42
+    partitions = ppma_instance(nbpartitions)
+    K = [collect(keys(partition)) for partition in partitions]
+    V = [collect(values(partition)) for partition in partitions]
+    ppma = PartitionedPackedMemoryArray(K, V)
+
+    # find
+    for i in 1:100000
+        partition = rand(rng, 1:nbpartitions)
+        key = rand(rng, 1:10000)
+        value = get(partitions[partition], key, 0.0)
+        @test ppma[partition, key] == value
+    end
+
+    # insertions
+    for i in 1:100000 
+        partition = rand(rng, 1:nbpartitions)
+        key = rand(rng, 1:10000)
+        value = rand(rng, 1:0.1:100)
+        ppma[partition, key] += value
+        if !haskey(partitions[partition], key)
+            partitions[partition][key] = 0.0
+        end
+        partitions[partition][key] += value
+    end
+
+    for partition in 1:nbpartitions
+        for (key, val) in partitions[partition]
+            @test ppma[partition, key] == val
+        end
+    end
     return
 end
 
@@ -131,17 +174,21 @@ function pma()
     @testset "Instantiation (with multiple elements)" begin
         dynsparsevec_instantiation()
     end
-    @testset "Insertions" begin
-        dynsparsevec_insertions()
+    @testset "Insertions & finds" begin
+        dynsparsevec_insertions_and_gets()
     end
     return
 end
 
 function ppma()
+
     @testset "Creation of a partitionned pma" begin
         ppma_creation()
     end
-
+    @testset "Insertions & finds" begin
+        ppma_insertions_and_gets()
+    end
+    return
 end
 
 function pcsr()
