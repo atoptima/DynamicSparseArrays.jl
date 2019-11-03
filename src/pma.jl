@@ -187,7 +187,6 @@ end
 # Insert an element between from and to included
 function _insert!(pma::PackedMemoryArray{K,T}, key::K, value::T, from::Int, to::Int, semaphores) where {K,T}
     (pos, _) = _find(pma, key, from, to)
-    println("insert after pos = $pos ($(pma.array[pos])) in [$from, $to]")
     seg_start = (_segidofcell(pma, pos) - 1) * pma.segment_capacity + 1
     seg_end = _segidofcell(pma, pos) * pma.segment_capacity
     insertion_pos = pos
@@ -434,14 +433,16 @@ function _spread!(array, window_start, window_end, m, semaphores)
     next_empty_cell = window_start + floor(nb_empty_cells * empty_cell_freq) - 1
     i = window_start + m - 1
     j = window_end
-    @inbounds while i != j && i >= window_start
+    @inbounds while i >= window_start
         if j == next_empty_cell
             nb_empty_cells -= 1
             next_empty_cell = window_start + floor(nb_empty_cells * empty_cell_freq) - 1
             j -= 1
         else
-            array[j] = array[i]
-            array[i] = nothing
+            if i != j
+                array[j] = array[i]
+                array[i] = nothing
+            end
             (key, val) = array[j]
             if key == semaphore_key(typeof(key))
                 semaphores[Int(val)] = j
@@ -458,8 +459,8 @@ function _movecellstoright!(pma::PackedMemoryArray{K,T}, from::Int, to::Int, sem
     #@assert 1 <= from <= to <= pma.capacity
     i = to - 1
     @inbounds while i >= from
-        pma.array[i+1] = pma.array[i]
-        (key, val) = pma.array[i+1]
+        (key, val) = pma.array[i]
+        pma.array[i+1] = (key, val)
         if key == semaphore_key(typeof(key))
             semaphores[Int(val)] = i+1
         end
@@ -472,8 +473,8 @@ function _movecellstoleft!(pma::PackedMemoryArray{K,T}, from::Int, to::Int, sema
     #@assert 1 <= to <= from <= pma.capacity
     i = to + 1
     @inbounds while i <= from
-        pma.array[i-1] = pma.array[i]
-        (key, val) = pma.array[i-1]
+        (key, val) = pma.array[i]
+        pma.array[i-1] = (key, val)
         if key == semaphore_key(typeof(key))
             semaphores[Int(val)] = i-1
         end
@@ -488,16 +489,7 @@ function _even_rebalance!(ppma::PartitionedPma, window_start, window_end, nbcell
         # It is a leaf within the treshold, we stop
         return
     end
-
-    # println("\e[31m PPM even rebalance  ($window_start to $window_end )\e[00m")
-    # if window_start <= 3403 <= window_end
-    #     println("\e[41m *** (density = $(nbcells / (window_end - window_start + 1))) \e[00m")
-    #     @show ppma.pma.array[window_start:window_end]
-    # end
     _pack!(ppma.pma.array, window_start, window_end, nbcells)
     _spread!(ppma.pma.array, window_start, window_end, nbcells, ppma.semaphores)
-    # if window_start <= 3403 <= window_end
-    #     @show ppma.pma.array[window_start:window_end]
-    # end
     return
 end

@@ -138,25 +138,12 @@ function ppma_creation()
     @test sum_val == sum(sum(values))
 
     for i in 1:100
-        println("\e[31m i = $i \e[00m")
-        pos_sem2 = ppma.semaphores[2]
-        println(">>>>>> semaphore at $pos_sem2 (value in array = $(ppma.pma.array[pos_sem2]))")
         ppma[1, i] = 10
-        @show ppma[1,i]
-        if ppma[1,i] != 10
-            println(">>> \e[43m error \e[00m")
-            @show ppma.semaphores
-            @show ppma.pma.array
-        end
     end
 
     for i in 1:100
-        println("\e[41m check i = $i \e[00m")
-        if ppma[1, i] != 10
-            println("*** error ***")
-        end
+        @test ppma[1,i] == 10
     end
-    exit()
     return
 end
 
@@ -239,7 +226,13 @@ test_rebalance(497, 97)
 test_rebalance(855, 17)
 test_rebalance(1000000, 5961)
 
-#pma()
+test_rebalance_with_semaphores(100, 10)
+test_rebalance_with_semaphores(1000, 8)
+test_rebalance_with_semaphores(500, 11)
+test_rebalance_with_semaphores(497, 97)
+test_rebalance_with_semaphores(855, 17)
+test_rebalance_with_semaphores(1000000, 5961)
+
+pma()
 ppma()
-exit()
-pcsr()
+#pcsr()
