@@ -74,14 +74,14 @@ function dynsparsevec_insertions_and_gets()
 end
 
 function dynsparsematrix_instantiation()
-    # I = [1, 4, 3, 5]
-    # J = [4, 7, 18, 9]
-    # V = [1, 2, -5, 3]
-    # matrix = dynamicsparse(I,J,V)
-    # @test matrix[1,4] == 1
-    # @test matrix[4,7] == 2
-    # @test matrix[3,18] == -5
-    # @test matrix[5,9] == 3
+    I = [1, 4, 3, 5]
+    J = [4, 7, 18, 9]
+    V = [1, 2, -5, 3]
+    matrix = dynamicsparse(I,J,V)
+    @test matrix[1,4] == 1
+    @test matrix[4,7] == 2
+    @test matrix[3,18] == -5
+    @test matrix[5,9] == 3
 
     I = [1, 1, 2, 4, 3, 5, 1, 3, 1, 5, 1, 5, 4]
     J = [4, 3, 3, 7, 18, 9, 3, 18, 4, 2, 3, 1, 7]
@@ -235,4 +235,4 @@ test_rebalance_with_semaphores(1000000, 5961)
 
 pma()
 ppma()
-#pcsr()
+pcsr()
