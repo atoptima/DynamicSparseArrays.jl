@@ -6,7 +6,7 @@ export dynamicsparsevec, dynamicsparse
 export PartitionedPackedMemoryArray, nbpartitions
 
 include("pma.jl")
-#include("pcsr.jl")
+include("pcsr.jl")
 
 end# module
 

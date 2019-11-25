@@ -74,9 +74,6 @@ function test_rebalance_with_semaphores(capacity::Int, expnbempty::Int)
     end
 
     DynamicSparseArrays._pack!(array, 1, length(array), nbcells)
-    # for i in 1:nbcells
-    #     @test array[i][1] == i
-    # end
 
     DynamicSparseArrays._spread!(array, 1, length(array), nbcells, sem)
     c = 0

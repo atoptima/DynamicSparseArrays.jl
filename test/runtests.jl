@@ -99,7 +99,7 @@ function dynsparsematrix_instantiation()
     return
 end
 
-function ppma_creation()
+function pcsc_creation()
     keys = [[1, 2, 3], [2, 6, 7], [1, 6, 8]]
     values = [[2, 3, 4], [2, 4, 5], [3, 5, 7]]
     ppma = PartitionedPackedMemoryArray(keys, values)
@@ -147,7 +147,7 @@ function ppma_creation()
     return
 end
 
-function ppma_instance(nbpartitions)
+function pcsc_instance(nbpartitions)
     partitions = Vector{Dict{Int, Float64}}()
     for p in 1:nbpartitions
         push!(partitions, Dict{Int, Float64}( 
@@ -157,9 +157,9 @@ function ppma_instance(nbpartitions)
     return partitions
 end
 
-function ppma_insertions_and_gets()
+function pcsc_insertions_and_gets()
     nbpartitions = 42
-    partitions = ppma_instance(nbpartitions)
+    partitions = pcsc_instance(nbpartitions)
     K = [collect(keys(partition)) for partition in partitions]
     V = [collect(values(partition)) for partition in partitions]
     ppma = PartitionedPackedMemoryArray(K, V)
@@ -202,20 +202,19 @@ function pma()
     return
 end
 
-function ppma()
-
-    @testset "Creation of a partitionned pma" begin
-        ppma_creation()
+function pcsc()
+    @testset "Creation of a packed compressed sparse row matrix" begin
+        pcsc_creation()
     end
     @testset "Insertions & finds" begin
-        ppma_insertions_and_gets()
+        pcsc_insertions_and_gets()
     end
     return
 end
 
-function pcsr()
+function dynamicsparse_tests()
     @testset "Instantiation (with multiple elements)" begin
-        dynsparsematrix_instantiation()
+        #dynsparsematrix_instantiation()
     end
 end
 
@@ -234,5 +233,5 @@ test_rebalance_with_semaphores(855, 17)
 test_rebalance_with_semaphores(1000000, 5961)
 
 pma()
-ppma()
-#pcsr()
+pcsc()
+dynamicsparse_tests()
