@@ -83,26 +83,26 @@ function dynsparsematrix_instantiation()
     @test matrix[3,18] == -5
     @test matrix[5,9] == 3
 
+
     I = [1, 1, 2, 4, 3, 5, 1, 3, 1, 5, 1, 5, 4]
     J = [4, 3, 3, 7, 18, 9, 3, 18, 4, 2, 3, 1, 7]
     V = [1, 8, 10, 2, -5, 3, 2, 1, 1, 1, 5, 3, 2]
     matrix = dynamicsparse(I,J,V)
     @test matrix[1,4] == 1 + 1
-    @test matrix[1,3] == 8 + 2
+    @test matrix[1,3] == 8 + 2 + 5
     @test matrix[4,7] == 2 + 2
     @test matrix[3,18] == -5 + 1
     @test matrix[5,9] == 3
     @test matrix[5,2] == 1
     @test matrix[5,1] == 3
     @test matrix[2,3] == 10
-    @test matrix[1,3] == 5
     return
 end
 
 function pcsc_creation()
     keys = [[1, 2, 3], [2, 6, 7], [1, 6, 8]]
     values = [[2, 3, 4], [2, 4, 5], [3, 5, 7]]
-    ppma = PartitionedPackedMemoryArray(keys, values)
+    ppma = PackedCSC(keys, values)
     @test nbpartitions(ppma) == 3
 
     for (id, pos) in enumerate(ppma.semaphores)
@@ -113,7 +113,7 @@ function pcsc_creation()
 
     keys = [[1, 2, 3, 1, 2], [2, 6, 7, 7, 5], [1, 6, 8, 2, 1]]
     values = [[2, 3, 4, 1, 1], [2, 4, 5, 1, 1], [3, 5, 7, 1, 1]]
-    ppma = PartitionedPackedMemoryArray(keys, values)
+    ppma = PackedCSC(keys, values)
     @test nbpartitions(ppma) == 3
 
     for (id, pos) in enumerate(ppma.semaphores)
@@ -138,11 +138,11 @@ function pcsc_creation()
     @test sum_val == sum(sum(values))
 
     for i in 1:100
-        ppma[1, i] = 10
+        ppma[i, 1] = 10
     end
 
     for i in 1:100
-        @test ppma[1,i] == 10
+        @test ppma[i, 1] == 10
     end
     return
 end
@@ -162,14 +162,14 @@ function pcsc_insertions_and_gets()
     partitions = pcsc_instance(nbpartitions)
     K = [collect(keys(partition)) for partition in partitions]
     V = [collect(values(partition)) for partition in partitions]
-    ppma = PartitionedPackedMemoryArray(K, V)
+    ppma = PackedCSC(K, V)
 
     # find
     for i in 1:100000
         partition = rand(rng, 1:nbpartitions)
         key = rand(rng, 1:10000)
         value = get(partitions[partition], key, 0.0)
-        @test ppma[partition, key] == value
+        @test ppma[key, partition] == value
     end
 
     # insertions
@@ -177,7 +177,7 @@ function pcsc_insertions_and_gets()
         partition = rand(rng, 1:nbpartitions)
         key = rand(rng, 1:10000)
         value = rand(rng, 1:0.1:100)
-        ppma[partition, key] += value
+        ppma[key, partition] += value
         if !haskey(partitions[partition], key)
             partitions[partition][key] = 0.0
         end
@@ -186,7 +186,7 @@ function pcsc_insertions_and_gets()
 
     for partition in 1:nbpartitions
         for (key, val) in partitions[partition]
-            @test ppma[partition, key] == val
+            @test ppma[key, partition] == val
         end
     end
     return
@@ -203,7 +203,7 @@ function pma()
 end
 
 function pcsc()
-    @testset "Creation of a packed compressed sparse row matrix" begin
+    @testset "Creation of a PackedCSC matrix" begin
         pcsc_creation()
     end
     @testset "Insertions & finds" begin
@@ -213,8 +213,11 @@ function pcsc()
 end
 
 function dynamicsparse_tests()
-    @testset "Instantiation (with multiple elements)" begin
-        #dynsparsematrix_instantiation()
+    @testset "Instantiation (with multiple elements) in MappedPackedCSC matrix" begin
+        dynsparsematrix_instantiation()
+    end
+    @testset "Insertions & finds" begin
+        # TODO
     end
 end
 

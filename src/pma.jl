@@ -310,6 +310,62 @@ function _extend!(pma::PackedMemoryArray)
     return
 end
 
+function _spread!(array, window_start, window_end, m, semaphores)
+    capacity = window_end - window_start + 1
+    nb_empty_cells = capacity - m
+    empty_cell_freq = capacity / nb_empty_cells
+    next_empty_cell = window_start + floor(nb_empty_cells * empty_cell_freq) - 1
+    i = window_start + m - 1
+    j = window_end
+    @inbounds while i >= window_start
+        if j == next_empty_cell
+            nb_empty_cells -= 1
+            next_empty_cell = window_start + floor(nb_empty_cells * empty_cell_freq) - 1
+            j -= 1
+        else
+            if i != j
+                array[j] = array[i]
+                array[i] = nothing
+            end
+            (key, val) = array[j]
+            if key == semaphore_key(typeof(key))
+                semaphores[Int(val)] = j
+            end
+            i -= 1
+            j -= 1
+        end
+    end
+    return
+end
+
+function _movecellstoright!(pma::PackedMemoryArray{K,T}, from::Int, to::Int, semaphores) where {K,T}
+    #@assert 1 <= from <= to <= pma.capacity
+    i = to - 1
+    @inbounds while i >= from
+        (key, val) = pma.array[i]
+        pma.array[i+1] = (key, val)
+        if key == semaphore_key(typeof(key))
+            semaphores[Int(val)] = i+1
+        end
+        i -= 1
+    end
+    return
+end
+
+function _movecellstoleft!(pma::PackedMemoryArray{K,T}, from::Int, to::Int, semaphores) where {K,T}
+    #@assert 1 <= to <= from <= pma.capacity
+    i = to + 1
+    @inbounds while i <= from
+        (key, val) = pma.array[i]
+        pma.array[i-1] = (key, val)
+        if key == semaphore_key(typeof(key))
+            semaphores[Int(val)] = i-1
+        end
+        i += 1
+    end
+    return
+end
+
 Base.ndims(pma::PackedMemoryArray) = 1
 Base.size(pma::PackedMemoryArray) = (pma.nb_elements,)
 Base.length(pma::PackedMemoryArray) = pma.nb_elements
