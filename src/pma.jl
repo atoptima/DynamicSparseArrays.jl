@@ -203,48 +203,6 @@ function _insert!(pma::PackedMemoryArray{K,T}, key::K, value::T, semaphores) whe
 end
 
 # start included, end included
-function _pack!(array, window_start, window_end, m)
-    i = window_start
-    j = window_start
-    @inbounds while i < window_start + m
-        if array[j] === nothing # empty cell
-            j += 1
-            continue
-        end
-        if i < j
-            array[i] = array[j]
-            array[j] = nothing
-        end
-        i += 1
-        j += 1
-    end
-    return
-end
-
-# start included, end included
-function _spread!(array, window_start, window_end, m)
-    capacity = window_end - window_start + 1
-    nb_empty_cells = capacity - m
-    empty_cell_freq = capacity / nb_empty_cells
-    next_empty_cell = window_start + floor(nb_empty_cells * empty_cell_freq) - 1
-    i = window_start + m - 1
-    j = window_end
-    @inbounds while i != j && i >= window_start
-        if j == next_empty_cell
-            nb_empty_cells -= 1
-            next_empty_cell = window_start + floor(nb_empty_cells * empty_cell_freq) - 1
-            j -= 1
-        else
-            array[j] = array[i]
-            array[i] = nothing
-            i -= 1
-            j -= 1
-        end
-    end
-    return
-end
-
-# start included, end included
 function _even_rebalance!(pma::PackedMemoryArray, window_start, window_end, m)
     capacity = window_end - window_start + 1
     if capacity == pma.segment_capacity
@@ -291,34 +249,6 @@ function _extend!(pma::PackedMemoryArray)
     pma.t_d = (pma.t_h - pma.t_0) / pma.height
     pma.p_d = (pma.p_h - pma.p_0) / pma.height 
     resize!(pma.array, pma.capacity)
-    return
-end
-
-function _spread!(array, window_start, window_end, m, semaphores)
-    capacity = window_end - window_start + 1
-    nb_empty_cells = capacity - m
-    empty_cell_freq = capacity / nb_empty_cells
-    next_empty_cell = window_start + floor(nb_empty_cells * empty_cell_freq) - 1
-    i = window_start + m - 1
-    j = window_end
-    @inbounds while i >= window_start
-        if j == next_empty_cell
-            nb_empty_cells -= 1
-            next_empty_cell = window_start + floor(nb_empty_cells * empty_cell_freq) - 1
-            j -= 1
-        else
-            if i != j
-                array[j] = array[i]
-                array[i] = nothing
-            end
-            (key, val) = array[j]
-            if key == semaphore_key(typeof(key))
-                semaphores[Int(val)] = j
-            end
-            i -= 1
-            j -= 1
-        end
-    end
     return
 end
 

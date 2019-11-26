@@ -37,7 +37,7 @@ Output (4-Tuple) :
     - number of empty entries
     - number of non-empty entries
 """
-function create_partitioned_array(capacity::Int, expnbempty::Int)
+function partitioned_array_factory(capacity::Int, expnbempty::Int, probpartition::Float64 = 0.05)
     nbempty = 0
     array =  Vector{Union{Tuple{Int,Int}, Nothing}}(nothing, capacity)
     semaphores = Vector{Int}()
@@ -45,11 +45,11 @@ function create_partitioned_array(capacity::Int, expnbempty::Int)
     k = 1
     for j in 1:capacity
         p = rand(rng, 0:0.001:1)
-        if p < expnbempty/capacity
+        if p < (1.0 * expnbempty)/capacity
             array[j] = nothing
             nbempty += 1
         else
-            if p > 0.95
+            if p > 1 - probpartition
                 array[j] = (0, k)
                 push!(semaphores, j)
                 i = 1

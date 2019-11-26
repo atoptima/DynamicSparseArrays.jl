@@ -22,12 +22,12 @@ function test_rebalance(capacity::Int, expnbempty::Int)
 end
 
 function test_rebalance_with_semaphores(capacity::Int, expnbempty::Int)
-    array, sem, nbempty, nbcells = create_partitioned_array(capacity, expnbempty)
+    array, sem, nbempty, nbcells = partitioned_array_factory(capacity, expnbempty)
 
     for pos in sem
         @test array[pos][1] == 0
     end
-    
+
     DynamicSparseArrays._pack!(array, 1, length(array), nbcells)
     DynamicSparseArrays._spread!(array, 1, length(array), nbcells, sem)
     c = 0

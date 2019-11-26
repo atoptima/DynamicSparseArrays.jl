@@ -1,5 +1,5 @@
 function test_movecellstoleft()
-    array, nbempty, nbcells = array_factory(20, 4)
+    array, nbempty, _ = array_factory(20, 4)
 
     # Test 1 : normal use
     array1 = Vector(array)
@@ -24,10 +24,35 @@ function test_movecellstoleft()
     from = to - 2
     DynamicSparseArrays._movecellstoleft!(array3, from, to, nothing)
     @test array == array3
+    return
+end
+
+function test_movecellstoleft_with_semaphores()
+    array, semaphores, _, _ = partitioned_array_factory(50, 20, 0.2)
+
+    # Test 1
+    array1 = Vector(array)
+    semaphores1 = Vector(semaphores)
+    to = findfirst(e -> e == nothing, array1)
+    from = to + 40 # we move almost all elements of the array to move some 
+    DynamicSparseArrays._movecellstoleft!(array1, from, to, semaphores1)
+
+    # println("\e[34m ------------ \e[00m")
+
+    # @show array
+    # @show array1
+
+    # println("\e[34m ------------- \e[00m")
+
+    # @show semaphores
+    # @show semaphores1
+    
+    # println("\e[31m ------------ \e[00m")
+    return
 end
 
 function test_movecellstoright()
-    array, nbempty, nbcells = array_factory(20, 4)
+    array, nbempty, _ = array_factory(20, 4)
 
     # Test 1 : normal use
     array1 = Vector(array)
@@ -52,5 +77,19 @@ function test_movecellstoright()
     from = to + 2
     DynamicSparseArrays._movecellstoright!(array3, from, to, nothing)
     @test array == array3
+    return
 end
+
+
+function test_movecellstoright_with_semaphores()
+    array, semaphores, _, _ = partitioned_array_factory(50, 20, 0.2)
+
+    # Test 1
+    #@show array
+    #@show semaphores
+    
+    #println("\e[31m ------------ \e[00m")
+    return
+end
+
 

@@ -22,6 +22,8 @@ function unit_tests()
 
     @testset "Moves - unit tests" begin
         test_movecellstoleft()
+        test_movecellstoleft_with_semaphores()
         test_movecellstoright()
+        test_movecellstoright_with_semaphores()
     end
 end
