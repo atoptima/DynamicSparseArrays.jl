@@ -56,13 +56,33 @@ Base.ndims(pma::PackedCSC) = 2
 Base.size(pma::PackedCSC) = (10000, 100000)
 # Base.length(pma::PackedCSC) = pma.nb_elements
 
-function _find(pcsc, partition, key)
+function _find(pcsc::PackedCSC, partition, key)
     from = pcsc.semaphores[partition]
     to = length(pcsc.pma.array) 
     if partition != pcsc.nb_partitions
         to = pcsc.semaphores[partition + 1] - 1
     end
     return _find(pcsc.pma, key, from, to)
+end
+
+function _even_rebalance!(pcsc::PackedCSC, window_start, window_end, nbcells)
+    capacity = window_end - window_start + 1
+    if capacity == pcsc.pma.segment_capacity
+        # It is a leaf within the treshold, we stop
+        return
+    end
+    _pack!(pcsc.pma.array, window_start, window_end, nbcells)
+    _spread!(pcsc.pma.array, window_start, window_end, nbcells, pcsc.semaphores)
+    return
+end
+
+function _addpartition!(pcsc::PackedCSC{K,T}) where {K,T}
+    sem_key = semaphore_key(K)
+    sem_pos = length(pcsc.pma.array)
+    pcsc.nb_partitions += 1
+    sem_val = pcsc.nb_partitions
+    push!(pcsc.semaphores, sem_pos)
+    return _insert!(pcsc.pma, sem_key, sem_val, sem_pos, pcsc.semaphores)
 end
 
 function Base.getindex(pcsc::PackedCSC{K,T}, key::K, partition::Int) where {K,T}
@@ -73,6 +93,10 @@ end
 
 function Base.getindex(mpcsc::MappedPackedCSC{L,K,T}, row::L, col::K) where {L,K,T}
     col_pos = findfirst(col_key -> col_key == col, mpcsc.col_keys)
+    @show col_pos
+    if col_pos == nothing
+        error("Message because we need to create a new column.")
+    end
     return mpcsc.pcsc[row, col_pos]
 end
 
@@ -90,15 +114,17 @@ function Base.setindex!(pcsc::PackedCSC{K,T}, value, key::K, partition::Int) whe
     return 
 end
 
-function _even_rebalance!(pcsc::PackedCSC, window_start, window_end, nbcells)
-    capacity = window_end - window_start + 1
-    if capacity == pcsc.pma.segment_capacity
-        # It is a leaf within the treshold, we stop
-        return
+function Base.setindex!(mpcsc::MappedPackedCSC{L,K,T}, value::T, row::L, col::K) where {L,K,T}
+    col_pos = findfirst(col_key -> col_key == col, mpcsc.col_keys)
+    if col_pos == nothing
+        _addpartition!(mpcsc.pcsc)
+        println("\e[32m -------- \e[00m")
+        @show mpcsc.pcsc.semaphores
+        @show mpcsc.pcsc.pma.array
+        println("\e[32m -------- \e[00m")        
+        exit()
     end
-    _pack!(pcsc.pma.array, window_start, window_end, nbcells)
-    _spread!(pcsc.pma.array, window_start, window_end, nbcells, pcsc.semaphores)
-    return
+    return setindex!(mpcsc.pcsc, value, row, col_pos)
 end
 
 ## Dynamic sparse matrix

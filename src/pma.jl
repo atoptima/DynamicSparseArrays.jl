@@ -108,26 +108,6 @@ function _previousemptycellinseg(pma::PackedMemoryArray, from::Int)
     return 0
 end
 
-function _movecellstoright!(pma::PackedMemoryArray, from::Int, to::Int, ::Nothing)
-    #@assert 1 <= from <= to <= pma.capacity
-    i = to - 1
-    @inbounds while i >= from
-        pma.array[i+1] = pma.array[i]
-        i -= 1
-    end
-    return
-end
-
-function _movecellstoleft!(pma::PackedMemoryArray, from::Int, to::Int, ::Nothing)
-    #@assert 1 <= to <= from <= pma.capacity
-    i = to + 1
-    @inbounds while i <= from
-        pma.array[i-1] = pma.array[i]
-        i += 1
-    end
-    return
-end
-
 function _getkey(pma::PackedMemoryArray, pos::Int)
     if pos == 0 || _emptycell(pma, pos)
         return nothing
@@ -189,22 +169,26 @@ function _insert!(pma::PackedMemoryArray{K,T}, key::K, value::T, from::Int, to::
     (pos, _) = _find(pma, key, from, to)
     seg_start = (_segidofcell(pma, pos) - 1) * pma.segment_capacity + 1
     seg_end = _segidofcell(pma, pos) * pma.segment_capacity
-    insertion_pos = pos
     if _getkey(pma, pos) == key
         pma.array[pos] = (key, value)
-        return (insertion_pos, false)
+        return (pos, false)
     end
 
     # insert the new key after the one found by the binary search
+    return _insert!(pma, key, value, pos, semaphores)
+end
+
+function _insert!(pma::PackedMemoryArray{K,T}, key::K, value::T, pos::Int, semaphores) where {K,T}
+    insertion_pos = pos
     nextemptycell = _nextemptycellinseg(pma, pos)
     if nextemptycell != 0
-        _movecellstoright!(pma, pos+1, nextemptycell, semaphores)
+        _movecellstoright!(pma.array, pos+1, nextemptycell, semaphores)
         pma.array[pos+1] = (key, value)
         insertion_pos += 1
     else
         previousemptycell = _previousemptycellinseg(pma, pos)
         if previousemptycell != 0
-            _movecellstoleft!(pma, pos, previousemptycell, semaphores)
+            _movecellstoleft!(pma.array, pos, previousemptycell, semaphores)
             pma.array[pos] = (key, value)
         else
             error("No empty cell to insert a new element in the PMA.") # Should not occur thanks to density.
@@ -334,34 +318,6 @@ function _spread!(array, window_start, window_end, m, semaphores)
             i -= 1
             j -= 1
         end
-    end
-    return
-end
-
-function _movecellstoright!(pma::PackedMemoryArray{K,T}, from::Int, to::Int, semaphores) where {K,T}
-    #@assert 1 <= from <= to <= pma.capacity
-    i = to - 1
-    @inbounds while i >= from
-        (key, val) = pma.array[i]
-        pma.array[i+1] = (key, val)
-        if key == semaphore_key(typeof(key))
-            semaphores[Int(val)] = i+1
-        end
-        i -= 1
-    end
-    return
-end
-
-function _movecellstoleft!(pma::PackedMemoryArray{K,T}, from::Int, to::Int, semaphores) where {K,T}
-    #@assert 1 <= to <= from <= pma.capacity
-    i = to + 1
-    @inbounds while i <= from
-        (key, val) = pma.array[i]
-        pma.array[i-1] = (key, val)
-        if key == semaphore_key(typeof(key))
-            semaphores[Int(val)] = i-1
-        end
-        i += 1
     end
     return
 end

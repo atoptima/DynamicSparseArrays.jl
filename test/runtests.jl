@@ -2,7 +2,7 @@ using DynamicSparseArrays, Test, Random
 
 rng = MersenneTwister(1234123)
 
-include("unit/rebalance.jl")
+include("unit/unitests.jl")
 
 function dynsparsevec_instantiation()
     I = [1, 2, 5, 5, 3, 10, 1, 8, 1, 5]
@@ -73,30 +73,18 @@ function dynsparsevec_insertions_and_gets()
     return
 end
 
-function dynsparsematrix_instantiation()
-    I = [1, 4, 3, 5]
-    J = [4, 7, 18, 9]
-    V = [1, 2, -5, 3]
-    matrix = dynamicsparse(I,J,V)
-    @test matrix[1,4] == 1
-    @test matrix[4,7] == 2
-    @test matrix[3,18] == -5
-    @test matrix[5,9] == 3
-
-
-    I = [1, 1, 2, 4, 3, 5, 1, 3, 1, 5, 1, 5, 4]
-    J = [4, 3, 3, 7, 18, 9, 3, 18, 4, 2, 3, 1, 7]
-    V = [1, 8, 10, 2, -5, 3, 2, 1, 1, 1, 5, 3, 2]
-    matrix = dynamicsparse(I,J,V)
-    @test matrix[1,4] == 1 + 1
-    @test matrix[1,3] == 8 + 2 + 5
-    @test matrix[4,7] == 2 + 2
-    @test matrix[3,18] == -5 + 1
-    @test matrix[5,9] == 3
-    @test matrix[5,2] == 1
-    @test matrix[5,1] == 3
-    @test matrix[2,3] == 10
-    return
+function pcsc_factory(nbpartitions, prob_empty_partition::Float64 = 0.0)
+    partitions = Vector{Dict{Int, Float64}}()
+    for p in 1:nbpartitions
+        if rand(rng, 0:0.001:1) >= prob_empty_partition
+            push!(partitions, Dict{Int, Float64}( 
+                rand(rng, 1:10000) => rand(rng, 1:0.1:100) for i in 10:rand(rng, 20:1000)
+            ))
+        else
+            push!(partition, Dict{Int, Float64}())
+        end
+    end
+    return partitions
 end
 
 function pcsc_creation()
@@ -147,19 +135,9 @@ function pcsc_creation()
     return
 end
 
-function pcsc_instance(nbpartitions)
-    partitions = Vector{Dict{Int, Float64}}()
-    for p in 1:nbpartitions
-        push!(partitions, Dict{Int, Float64}( 
-            rand(rng, 1:10000) => rand(rng, 1:0.1:100) for i in 10:rand(rng, 20:1000)
-        ))
-    end
-    return partitions
-end
-
 function pcsc_insertions_and_gets()
     nbpartitions = 42
-    partitions = pcsc_instance(nbpartitions)
+    partitions = pcsc_factory(nbpartitions)
     K = [collect(keys(partition)) for partition in partitions]
     V = [collect(values(partition)) for partition in partitions]
     ppma = PackedCSC(K, V)
@@ -192,6 +170,67 @@ function pcsc_insertions_and_gets()
     return
 end
 
+function dynsparsematrix_factory(nbrows, nbcols, density::Float64 = 0.05)
+    I = Vector{Int}()
+    J = Vector{Int}()
+    V = Vector{Float64}()
+    for i in 1:nbrows, j in 1:nbcols
+        if rand(rng, 0:0.01:1) <= density
+            push!(I, i)
+            push!(J, j)
+            push!(v, rand(rng, 0:0.0001:1000))
+        end
+    end
+    return I, J, V
+end
+
+function dynsparsematrix_instantiation()
+    I = [1, 4, 3, 5]
+    J = [4, 7, 18, 9]
+    V = [1, 2, -5, 3]
+    matrix = dynamicsparse(I,J,V)
+    @test matrix[1,4] == 1
+    @test matrix[4,7] == 2
+    @test matrix[3,18] == -5
+    @test matrix[5,9] == 3
+
+    I = [1, 1, 2, 4, 3, 5, 1, 3, 1, 5, 1, 5, 4]
+    J = [4, 3, 3, 7, 18, 9, 3, 18, 4, 2, 3, 1, 7]
+    V = [1, 8, 10, 2, -5, 3, 2, 1, 1, 1, 5, 3, 2]
+    matrix = dynamicsparse(I,J,V)
+    @test matrix[1,4] == 1 + 1
+    @test matrix[1,3] == 8 + 2 + 5
+    @test matrix[4,7] == 2 + 2
+    @test matrix[3,18] == -5 + 1
+    @test matrix[5,9] == 3
+    @test matrix[5,2] == 1
+    @test matrix[5,1] == 3
+    @test matrix[2,3] == 10
+    return
+end
+
+function dynsparsematrix_insertions_and_gets()
+    I = [1, 4, 3, 5]
+    J = [4, 7, 18, 9]
+    V = [1, 2, -5, 3]
+    matrix = dynamicsparse(I,J,V)
+    matrix[2,7] = 8 # Add value in an empty row but non-empty column
+    @test matrix[2,7] == 8
+    matrix[1,2] = 21 # Add value in a non-empty row but empty column
+    @test[1,2] == 21
+    exit()
+    matrix[55,54] = 53 # Add value in empty column and empty row
+    @test matrix[55,54] == 53
+
+    @test matrix[1,4] == 1
+    @test matrix[4,7] == 2
+    @test matrix[3,18] == -5
+    @test matrix[5,9] == 3
+
+    I, J, V = dynsparsematrix_factory(3400, 100000)
+    # TODO
+end
+
 function pma()
     @testset "Instantiation (with multiple elements)" begin
         dynsparsevec_instantiation()
@@ -217,24 +256,11 @@ function dynamicsparse_tests()
         dynsparsematrix_instantiation()
     end
     @testset "Insertions & finds" begin
-        # TODO
+        dynsparsematrix_insertions_and_gets()
     end
 end
 
-test_rebalance(100, 10)
-test_rebalance(1000, 8)
-test_rebalance(500, 11)
-test_rebalance(497, 97)
-test_rebalance(855, 17)
-test_rebalance(1000000, 5961)
-
-test_rebalance_with_semaphores(100, 10)
-test_rebalance_with_semaphores(1000, 8)
-test_rebalance_with_semaphores(500, 11)
-test_rebalance_with_semaphores(497, 97)
-test_rebalance_with_semaphores(855, 17)
-test_rebalance_with_semaphores(1000000, 5961)
-
+unit_tests()
 pma()
 pcsc()
 dynamicsparse_tests()
