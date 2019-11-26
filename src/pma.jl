@@ -108,26 +108,6 @@ function _previousemptycellinseg(pma::PackedMemoryArray, from::Int)
     return 0
 end
 
-function _movecellstoright!(pma::PackedMemoryArray, from::Int, to::Int, ::Nothing)
-    #@assert 1 <= from <= to <= pma.capacity
-    i = to - 1
-    @inbounds while i >= from
-        pma.array[i+1] = pma.array[i]
-        i -= 1
-    end
-    return
-end
-
-function _movecellstoleft!(pma::PackedMemoryArray, from::Int, to::Int, ::Nothing)
-    #@assert 1 <= to <= from <= pma.capacity
-    i = to + 1
-    @inbounds while i <= from
-        pma.array[i-1] = pma.array[i]
-        i += 1
-    end
-    return
-end
-
 function _getkey(pma::PackedMemoryArray, pos::Int)
     if pos == 0 || _emptycell(pma, pos)
         return nothing
@@ -189,22 +169,26 @@ function _insert!(pma::PackedMemoryArray{K,T}, key::K, value::T, from::Int, to::
     (pos, _) = _find(pma, key, from, to)
     seg_start = (_segidofcell(pma, pos) - 1) * pma.segment_capacity + 1
     seg_end = _segidofcell(pma, pos) * pma.segment_capacity
-    insertion_pos = pos
     if _getkey(pma, pos) == key
         pma.array[pos] = (key, value)
-        return (insertion_pos, false)
+        return (pos, false)
     end
 
     # insert the new key after the one found by the binary search
+    return _insert!(pma, key, value, pos, semaphores)
+end
+
+function _insert!(pma::PackedMemoryArray{K,T}, key::K, value::T, pos::Int, semaphores) where {K,T}
+    insertion_pos = pos
     nextemptycell = _nextemptycellinseg(pma, pos)
     if nextemptycell != 0
-        _movecellstoright!(pma, pos+1, nextemptycell, semaphores)
+        _movecellstoright!(pma.array, pos+1, nextemptycell, semaphores)
         pma.array[pos+1] = (key, value)
         insertion_pos += 1
     else
         previousemptycell = _previousemptycellinseg(pma, pos)
         if previousemptycell != 0
-            _movecellstoleft!(pma, pos, previousemptycell, semaphores)
+            _movecellstoleft!(pma.array, pos, previousemptycell, semaphores)
             pma.array[pos] = (key, value)
         else
             error("No empty cell to insert a new element in the PMA.") # Should not occur thanks to density.
@@ -216,48 +200,6 @@ end
 
 function _insert!(pma::PackedMemoryArray{K,T}, key::K, value::T, semaphores) where {K,T}
     return _insert!(pma, key, value, 1, length(pma.array), semaphores)
-end
-
-# start included, end included
-function _pack!(array, window_start, window_end, m)
-    i = window_start
-    j = window_start
-    @inbounds while i < window_start + m
-        if array[j] === nothing # empty cell
-            j += 1
-            continue
-        end
-        if i < j
-            array[i] = array[j]
-            array[j] = nothing
-        end
-        i += 1
-        j += 1
-    end
-    return
-end
-
-# start included, end included
-function _spread!(array, window_start, window_end, m)
-    capacity = window_end - window_start + 1
-    nb_empty_cells = capacity - m
-    empty_cell_freq = capacity / nb_empty_cells
-    next_empty_cell = window_start + floor(nb_empty_cells * empty_cell_freq) - 1
-    i = window_start + m - 1
-    j = window_end
-    @inbounds while i != j && i >= window_start
-        if j == next_empty_cell
-            nb_empty_cells -= 1
-            next_empty_cell = window_start + floor(nb_empty_cells * empty_cell_freq) - 1
-            j -= 1
-        else
-            array[j] = array[i]
-            array[i] = nothing
-            i -= 1
-            j -= 1
-        end
-    end
-    return
 end
 
 # start included, end included
@@ -352,144 +294,5 @@ function Base.show(io::IO, pma::PackedMemoryArray{K,T,P}) where {K,T,P}
         io, pma.capacity, "-element ", typeof(pma), " with ", pma.nb_elements, 
         " stored ", pma.nb_elements == 1 ? "entry." : "entries."
     )
-    return
-end
-
-mutable struct PartitionedPma{K<:Integer,T<:Real}
-    nb_partitions::Int
-    semaphores::Vector{Int} # pos of the semaphore in the pma
-    #nb_elements_in_partition::Vector{Int} # nb elements after each semaphore
-    pma::PackedMemoryArray{K,T,NoPredictor}
-end
-
-nbpartitions(ppma::PartitionedPma) = length(ppma.semaphores)
-semaphore_key(::Type{K}) where {K<:Integer} = zero(K)
-
-function PartitionedPackedMemoryArray(keys::Vector{Vector{K}}, values::Vector{Vector{T}}, combine::Function = +) where {K,T}
-    nb_semaphores = length(keys)
-    @assert nb_semaphores == length(values)
-    ppma_keys = Vector{K}()
-    ppma_values = Vector{T}()
-    ppma_elems = Vector{T}()
-    for semaphore_id in 1:nb_semaphores
-        # Insert the semaphore 
-        push!(ppma_keys, semaphore_key(K))
-        push!(ppma_values, T(semaphore_id)) # This is why T <: Real
-        # Create the column
-        nkeys = Vector(keys[semaphore_id])
-        nvalues = Vector(values[semaphore_id])
-        _prepare_keys_vals!(nkeys, nvalues, combine)
-        push!(ppma_keys, nkeys...)
-        push!(ppma_values, nvalues...)
-    end
-    pma = _pma(ppma_keys, ppma_values)
-    semaphores = zeros(Int, nb_semaphores)
-    for (pos, pair) in enumerate(pma.array)
-        if pair != nothing && pair[1] == semaphore_key(K)
-            id = Int(pair[2])
-            semaphores[id] = pos
-        end
-    end
-    return PartitionedPma(nb_semaphores, semaphores, pma)
-end
-
-Base.ndims(pma::PartitionedPma) = 2
-Base.size(pma::PartitionedPma) = (10000, 100000)
-# Base.length(pma::PartitionedPma) = pma.nb_elements
-
-function _find(ppma, partition, key)
-    from = ppma.semaphores[partition]
-    to = length(ppma.pma.array) 
-    if partition != ppma.nb_partitions
-        to = ppma.semaphores[partition + 1] - 1
-    end
-    return _find(ppma.pma, key, from, to)
-end
-
-function Base.getindex(ppma::PartitionedPma{K,T}, partition, key) where {K,T}
-    fpos, fpair = _find(ppma, partition, key)
-    fpair != nothing && fpair[1] == key && return fpair[2]
-    return zero(T)
-end
-
-function Base.setindex!(ppma::PartitionedPma{K,T}, value, partition, key) where {K,T}
-    from = ppma.semaphores[partition]
-    to = length(ppma.pma.array) 
-    if partition != ppma.nb_partitions
-        to = ppma.semaphores[partition + 1] - 1
-    end
-    insertion_pos, rebalance = _insert!(ppma.pma, key, value, from, to, ppma.semaphores)
-    if rebalance
-        win_start, win_end, nbcells = _look_for_rebalance!(ppma.pma, insertion_pos)
-        _even_rebalance!(ppma, win_start, win_end, nbcells)
-    end
-    return 
-end
-
-function _spread!(array, window_start, window_end, m, semaphores)
-    capacity = window_end - window_start + 1
-    nb_empty_cells = capacity - m
-    empty_cell_freq = capacity / nb_empty_cells
-    next_empty_cell = window_start + floor(nb_empty_cells * empty_cell_freq) - 1
-    i = window_start + m - 1
-    j = window_end
-    @inbounds while i >= window_start
-        if j == next_empty_cell
-            nb_empty_cells -= 1
-            next_empty_cell = window_start + floor(nb_empty_cells * empty_cell_freq) - 1
-            j -= 1
-        else
-            if i != j
-                array[j] = array[i]
-                array[i] = nothing
-            end
-            (key, val) = array[j]
-            if key == semaphore_key(typeof(key))
-                semaphores[Int(val)] = j
-            end
-            i -= 1
-            j -= 1
-        end
-    end
-    return
-end
-
-
-function _movecellstoright!(pma::PackedMemoryArray{K,T}, from::Int, to::Int, semaphores) where {K,T}
-    #@assert 1 <= from <= to <= pma.capacity
-    i = to - 1
-    @inbounds while i >= from
-        (key, val) = pma.array[i]
-        pma.array[i+1] = (key, val)
-        if key == semaphore_key(typeof(key))
-            semaphores[Int(val)] = i+1
-        end
-        i -= 1
-    end
-    return
-end
-
-function _movecellstoleft!(pma::PackedMemoryArray{K,T}, from::Int, to::Int, semaphores) where {K,T}
-    #@assert 1 <= to <= from <= pma.capacity
-    i = to + 1
-    @inbounds while i <= from
-        (key, val) = pma.array[i]
-        pma.array[i-1] = (key, val)
-        if key == semaphore_key(typeof(key))
-            semaphores[Int(val)] = i-1
-        end
-        i += 1
-    end
-    return
-end
-
-function _even_rebalance!(ppma::PartitionedPma, window_start, window_end, nbcells)
-    capacity = window_end - window_start + 1
-    if capacity == ppma.pma.segment_capacity
-        # It is a leaf within the treshold, we stop
-        return
-    end
-    _pack!(ppma.pma.array, window_start, window_end, nbcells)
-    _spread!(ppma.pma.array, window_start, window_end, nbcells, ppma.semaphores)
     return
 end
