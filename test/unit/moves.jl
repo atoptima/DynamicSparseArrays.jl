@@ -7,8 +7,8 @@ function test_movecellstoleft()
     from = to + 4
     DynamicSparseArrays._movecellstoleft!(array1, from, to, nothing)
     @test array[to] == nothing
-    @test array[to+1:from] == array1[to:from-1]
     @test array1[from] == nothing
+    @test array[to+1:from] == array1[to:from-1]
     @test array[from+1:end] == array1[from+1:end]
 
     # Test 2 : try to move on a non-empty cell, error expected
@@ -29,25 +29,18 @@ end
 
 function test_movecellstoleft_with_semaphores()
     array, semaphores, _, _ = partitioned_array_factory(50, 20, 0.2)
+    check_semaphores(array, semaphores)
 
-    # Test 1
+    # Test 1 : normal use
     array1 = Vector(array)
     semaphores1 = Vector(semaphores)
     to = findfirst(e -> e == nothing, array1)
-    from = to + 40 # we move almost all elements of the array to move some 
+    from = to + 40 # we move almost all elements of the array to move some semaphores 
     DynamicSparseArrays._movecellstoleft!(array1, from, to, semaphores1)
-
-    # println("\e[34m ------------ \e[00m")
-
-    # @show array
-    # @show array1
-
-    # println("\e[34m ------------- \e[00m")
-
-    # @show semaphores
-    # @show semaphores1
-    
-    # println("\e[31m ------------ \e[00m")
+    check_semaphores(array1, semaphores1)
+    @test array[to] == nothing
+    @test array1[from] == nothing
+    @test array[to+1:from] == array1[to:from-1]
     return
 end
 
@@ -60,8 +53,8 @@ function test_movecellstoright()
     from = to - 4
     DynamicSparseArrays._movecellstoright!(array1, from, to, nothing)
     @test array[to] == nothing
-    @test array[from:to-1] == array1[from+1:to]
     @test array1[from] == nothing
+    @test array[from:to-1] == array1[from+1:to]
     @test array[1:from-1] == array1[1:from-1]
 
     # Test 2 : try to move on empty-cell, error excepted
@@ -83,12 +76,19 @@ end
 
 function test_movecellstoright_with_semaphores()
     array, semaphores, _, _ = partitioned_array_factory(50, 20, 0.2)
+    check_semaphores(array, semaphores)
 
-    # Test 1
-    #@show array
-    #@show semaphores
-    
-    #println("\e[31m ------------ \e[00m")
+    # Test 1 : normal use
+    array1 = Vector(array)
+    semaphores1 = Vector(semaphores)
+    to = findlast(e -> e == nothing, array1)
+    from = to - 40 # we move almost all elements of the array to move some semaphores
+    DynamicSparseArrays._movecellstoright!(array1, from, to, semaphores1)
+    check_semaphores(array1, semaphores1)
+    @test array[to] == nothing
+    @test array1[from] == nothing
+    @test array[from:to-1] == array1[from+1:to]
+    @test array[1:from-1] == array1[1:from-1]
     return
 end
 

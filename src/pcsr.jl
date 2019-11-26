@@ -80,7 +80,7 @@ function _addpartition!(pcsc::PackedCSC{K,T}) where {K,T}
     sem_key = semaphore_key(K)
     sem_pos = length(pcsc.pma.array)
     pcsc.nb_partitions += 1
-    sem_val = pcsc.nb_partitions
+    sem_val = T(pcsc.nb_partitions)
     push!(pcsc.semaphores, sem_pos)
     return _insert!(pcsc.pma, sem_key, sem_val, sem_pos, pcsc.semaphores)
 end
@@ -93,14 +93,13 @@ end
 
 function Base.getindex(mpcsc::MappedPackedCSC{L,K,T}, row::L, col::K) where {L,K,T}
     col_pos = findfirst(col_key -> col_key == col, mpcsc.col_keys)
-    @show col_pos
-    if col_pos == nothing
-        error("Message because we need to create a new column.")
+    if col_pos == nothing # The column does not exist
+        return zero(T)
     end
     return mpcsc.pcsc[row, col_pos]
 end
 
-function Base.setindex!(pcsc::PackedCSC{K,T}, value, key::K, partition::Int) where {K,T}
+function Base.setindex!(pcsc::PackedCSC{K,T}, value::T, key::K, partition::Int) where {K,T}
     from = pcsc.semaphores[partition]
     to = length(pcsc.pma.array) 
     if partition != pcsc.nb_partitions
@@ -114,21 +113,27 @@ function Base.setindex!(pcsc::PackedCSC{K,T}, value, key::K, partition::Int) whe
     return 
 end
 
+function Base.setindex!(pcsc::PackedCSC{K,T}, value, key::K, partition::Int) where {K,T}
+    return setindex!(pcsc, T(value), key, partition)
+end
+
 function Base.setindex!(mpcsc::MappedPackedCSC{L,K,T}, value::T, row::L, col::K) where {L,K,T}
     col_pos = findfirst(col_key -> col_key == col, mpcsc.col_keys)
     if col_pos == nothing
+        last_col = mpcsc.col_keys[end]
+        col <= last_col && throw(ArgumentError("New column must have id greater than last column id; got id $(col), last column id is $(last_col)."))
+        push!(mpcsc.col_keys, col)
         _addpartition!(mpcsc.pcsc)
-        println("\e[32m -------- \e[00m")
-        @show mpcsc.pcsc.semaphores
-        @show mpcsc.pcsc.pma.array
-        println("\e[32m -------- \e[00m")        
-        exit()
+        col_pos = length(mpcsc.col_keys) 
     end
     return setindex!(mpcsc.pcsc, value, row, col_pos)
 end
 
-## Dynamic sparse matrix
+function Base.setindex!(mpcsc::MappedPackedCSC{L,K,T}, value, row::L, col::K) where {L,K,T}
+    return setindex!(mpcsc, T(value), row, col)
+end
 
+## Dynamic sparse matrix
 function _dynamicsparse(
     I::Vector{K}, J::Vector{L}, V::Vector{T}, combine, always_use_map
 ) where {K,L,T}

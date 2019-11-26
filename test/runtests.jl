@@ -175,10 +175,10 @@ function dynsparsematrix_factory(nbrows, nbcols, density::Float64 = 0.05)
     J = Vector{Int}()
     V = Vector{Float64}()
     for i in 1:nbrows, j in 1:nbcols
-        if rand(rng, 0:0.01:1) <= density
+        if rand(rng, 0:0.001:1) <= density
             push!(I, i)
             push!(J, j)
-            push!(v, rand(rng, 0:0.0001:1000))
+            push!(V, rand(rng, 0:0.0001:1000))
         end
     end
     return I, J, V
@@ -214,12 +214,20 @@ function dynsparsematrix_insertions_and_gets()
     J = [4, 7, 18, 9]
     V = [1, 2, -5, 3]
     matrix = dynamicsparse(I,J,V)
-    matrix[2,7] = 8 # Add value in an empty row but non-empty column
+    # Test 1 : Add value in an empty row but non-empty column
+    matrix[2,7] = 8
     @test matrix[2,7] == 8
-    matrix[1,2] = 21 # Add value in a non-empty row but empty column
-    @test[1,2] == 21
-    exit()
-    matrix[55,54] = 53 # Add value in empty column and empty row
+    # Test 2 : Add value in a non-empty row but empty column, should not work
+    # because the column is not registered and its id (2) is less than the last
+    # id (18).
+    @test_throws ArgumentError matrix[1,2] = 21
+    @test matrix[1,2] == 0 # because the column does not exist
+    # Test 3 : Add value in a non-empty row but empty column,
+    # works because 33 > 18
+    matrix[10,33] = 21
+    @test matrix[10,33] == 21
+    # Test 4 : Add value in empty column and empty row
+    matrix[55,54] = 53
     @test matrix[55,54] == 53
 
     @test matrix[1,4] == 1
@@ -227,15 +235,32 @@ function dynsparsematrix_insertions_and_gets()
     @test matrix[3,18] == -5
     @test matrix[5,9] == 3
 
-    I, J, V = dynsparsematrix_factory(3400, 100000)
+    nb_rows = 340
+    nb_cols = 1000
+    I, J, V = dynsparsematrix_factory(nb_rows, nb_cols)
+    matrix = dynamicsparse(I,J,V)
+
+    for k in 1:length(I)
+        @test matrix[I[k],J[k]] == V[k]
+    end
+    
+    # Adding new columns 
+    for col in nb_cols:5000
+        matrix[1,col] = 1
+    end
+
+    for col in nb_cols:5000
+        @test matrix[1,col] == 1
+    end
+
     # TODO
 end
 
 function pma()
-    @testset "Instantiation (with multiple elements)" begin
+    @testset "Instantiation (with multiple elements) in dyn sparse vector" begin
         dynsparsevec_instantiation()
     end
-    @testset "Insertions & finds" begin
+    @testset "Insertions & finds in dyn sparse vector" begin
         dynsparsevec_insertions_and_gets()
     end
     return
@@ -245,7 +270,7 @@ function pcsc()
     @testset "Creation of a PackedCSC matrix" begin
         pcsc_creation()
     end
-    @testset "Insertions & finds" begin
+    @testset "Insertions & finds in PackedCSC matrix" begin
         pcsc_insertions_and_gets()
     end
     return
@@ -255,7 +280,7 @@ function dynamicsparse_tests()
     @testset "Instantiation (with multiple elements) in MappedPackedCSC matrix" begin
         dynsparsematrix_instantiation()
     end
-    @testset "Insertions & finds" begin
+    @testset "Insertions & finds in MappedPackedCSC matrix" begin
         dynsparsematrix_insertions_and_gets()
     end
 end

@@ -26,4 +26,5 @@ function unit_tests()
         test_movecellstoright()
         test_movecellstoright_with_semaphores()
     end
+    return
 end

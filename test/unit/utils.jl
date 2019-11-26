@@ -63,3 +63,12 @@ function partitioned_array_factory(capacity::Int, expnbempty::Int, probpartition
     end
     return array, semaphores, nbempty, capacity - nbempty
 end
+
+function check_semaphores(
+    array::Vector{Union{Nothing, Tuple{K,T}}}, semaphores
+) where {K,T}
+    sem_key = DynamicSparseArrays.semaphore_key(K)
+    for (part_id, pos) in enumerate(semaphores)
+        @test array[pos] == (sem_key, part_id)
+    end
+end
