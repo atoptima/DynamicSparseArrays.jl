@@ -52,19 +52,6 @@ function MappedPackedCSC(
     return MappedPackedCSC(column_keys, pcsc)
 end
 
-Base.ndims(pma::PackedCSC) = 2
-Base.size(pma::PackedCSC) = (10000, 100000)
-# Base.length(pma::PackedCSC) = pma.nb_elements
-
-function _find(pcsc::PackedCSC, partition, key)
-    from = pcsc.semaphores[partition]
-    to = length(pcsc.pma.array) 
-    if partition != pcsc.nb_partitions
-        to = pcsc.semaphores[partition + 1] - 1
-    end
-    return _find(pcsc.pma, key, from, to)
-end
-
 function _even_rebalance!(pcsc::PackedCSC, window_start, window_end, nbcells)
     capacity = window_end - window_start + 1
     if capacity == pcsc.pma.segment_capacity
@@ -76,17 +63,36 @@ function _even_rebalance!(pcsc::PackedCSC, window_start, window_end, nbcells)
     return
 end
 
-function _addpartition!(pcsc::PackedCSC{K,T}) where {K,T}
+function addpartition!(pcsc::PackedCSC{K,T}) where {K,T}
     sem_key = semaphore_key(K)
     sem_pos = length(pcsc.pma.array)
     pcsc.nb_partitions += 1
     sem_val = T(pcsc.nb_partitions)
     push!(pcsc.semaphores, sem_pos)
-    return _insert!(pcsc.pma, sem_key, sem_val, sem_pos, pcsc.semaphores)
+    return _insert!(
+        pcsc.pma.array, sem_key, sem_val, sem_pos, pcsc.pma.segment_capacity,
+        pcsc.semaphores
+    )
+end
+
+
+Base.ndims(pma::PackedCSC) = 2
+Base.size(pma::PackedCSC) = (10000, 100000)
+# Base.length(pma::PackedCSC) = pma.nb_elements
+
+
+# getindex
+function find(pcsc::PackedCSC, partition, key)
+    from = pcsc.semaphores[partition]
+    to = length(pcsc.pma.array) 
+    if partition != pcsc.nb_partitions
+        to = pcsc.semaphores[partition + 1] - 1
+    end
+    return find(pcsc.pma.array, key, from, to)
 end
 
 function Base.getindex(pcsc::PackedCSC{K,T}, key::K, partition::Int) where {K,T}
-    fpos, fpair = _find(pcsc, partition, key)
+    fpos, fpair = find(pcsc, partition, key)
     fpair != nothing && fpair[1] == key && return fpair[2]
     return zero(T)
 end
@@ -99,22 +105,24 @@ function Base.getindex(mpcsc::MappedPackedCSC{L,K,T}, row::L, col::K) where {L,K
     return mpcsc.pcsc[row, col_pos]
 end
 
-function Base.setindex!(pcsc::PackedCSC{K,T}, value::T, key::K, partition::Int) where {K,T}
+
+# setindex 
+function Base.setindex!(pcsc::PackedCSC{K,T}, value, key::K, partition::Int) where {K,T}
     from = pcsc.semaphores[partition]
     to = length(pcsc.pma.array) 
     if partition != pcsc.nb_partitions
         to = pcsc.semaphores[partition + 1] - 1
     end
-    insertion_pos, rebalance = _insert!(pcsc.pma, key, value, from, to, pcsc.semaphores)
-    if rebalance
-        win_start, win_end, nbcells = _look_for_rebalance!(pcsc.pma, insertion_pos)
+    insert_pos, new_elem = insert!(
+        pcsc.pma.array, key, value, from, to, pcsc.pma.segment_capacity, 
+        pcsc.semaphores
+    )
+    if new_elem
+        pcsc.pma.nb_elements += 1
+        win_start, win_end, nbcells = _look_for_rebalance!(pcsc.pma, insert_pos)
         _even_rebalance!(pcsc, win_start, win_end, nbcells)
     end
     return 
-end
-
-function Base.setindex!(pcsc::PackedCSC{K,T}, value, key::K, partition::Int) where {K,T}
-    return setindex!(pcsc, T(value), key, partition)
 end
 
 function Base.setindex!(mpcsc::MappedPackedCSC{L,K,T}, value::T, row::L, col::K) where {L,K,T}
@@ -123,7 +131,7 @@ function Base.setindex!(mpcsc::MappedPackedCSC{L,K,T}, value::T, row::L, col::K)
         last_col = mpcsc.col_keys[end]
         col <= last_col && throw(ArgumentError("New column must have id greater than last column id; got id $(col), last column id is $(last_col)."))
         push!(mpcsc.col_keys, col)
-        _addpartition!(mpcsc.pcsc)
+        addpartition!(mpcsc.pcsc)
         col_pos = length(mpcsc.col_keys) 
     end
     return setindex!(mpcsc.pcsc, value, row, col_pos)
@@ -133,7 +141,8 @@ function Base.setindex!(mpcsc::MappedPackedCSC{L,K,T}, value, row::L, col::K) wh
     return setindex!(mpcsc, T(value), row, col)
 end
 
-## Dynamic sparse matrix
+
+## Dynamic sparse matrix builder (exported)
 function _dynamicsparse(
     I::Vector{K}, J::Vector{L}, V::Vector{T}, combine, always_use_map
 ) where {K,L,T}
@@ -207,6 +216,8 @@ function dynamicsparse(
         throw(ArgumentError("rows, columns, & nonzeros do not have same length."))
     length(I) > 0 ||
         throw(ArgumentError("vectors cannot be empty.")) 
+    applicable(<, J[1], J[1]) ||
+        throw(ArgumentError("set of column keys must be totally ordered (define method Base.:< for type $L)."))
     return _dynamicsparse(
         Vector(I), Vector(J), Vector(V), combine, always_use_map
     )
@@ -214,3 +225,5 @@ end
 
 dynamicsparse(I,J,V) = dynamicsparse(I, J, V, +, true) 
 
+# Show
+# TODO

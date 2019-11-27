@@ -5,7 +5,7 @@ content of the cell at position `to` is replaced by the content of the cell at
 position `to - 1`.
 """
 function _movecellstoright!(
-    array::Vector{Union{Nothing,Tuple{K,T}}}, from::Int, to::Int, semaphores
+    array::Elements{K,T}, from::Int, to::Int, semaphores
 ) where {K,T}
     array[to] == nothing || throw(ArgumentError("The cell erased by the movement must contain nothing."))
     _moverightloop!(array, from, to, semaphores)
@@ -13,7 +13,7 @@ function _movecellstoright!(
 end
 
 function _moverightloop!(
-    array::Vector{Union{Nothing,Tuple{K,T}}}, from, to, ::Nothing
+    array::Elements{K,T}, from, to, ::Nothing
 ) where {K,T}
     i = to
     @inbounds while i > from
@@ -25,7 +25,7 @@ function _moverightloop!(
 end
 
 function _moverightloop!(
-    array::Vector{Union{Nothing,Tuple{K,T}}}, from, to, semaphores::Vector
+    array::Elements{K,T}, from, to, semaphores::Vector
 ) where {K,T}
     i = to
     sem_key = semaphore_key(K)
@@ -51,7 +51,7 @@ content of the cell at position `to` is replaced by the content of the cell at
 position `to + 1`.
 """
 function _movecellstoleft!(
-    array::Vector{Union{Nothing,Tuple{K,T}}}, from::Int, to::Int, semaphores
+    array::Elements{K,T}, from::Int, to::Int, semaphores
 ) where {K,T}
     array[to] == nothing || throw(ArgumentError("The cell erased by the movement must contain nothing."))
     _moveleftloop!(array, from, to, semaphores)
@@ -59,7 +59,7 @@ function _movecellstoleft!(
 end
 
 function _moveleftloop!(
-    array::Vector{Union{Nothing,Tuple{K,T}}}, from, to, ::Nothing
+    array::Elements{K,T}, from, to, ::Nothing
 ) where {K,T}
     i = to
     @inbounds while i < from
@@ -71,7 +71,7 @@ function _moveleftloop!(
 end
 
 function _moveleftloop!(
-    array::Vector{Union{Nothing,Tuple{K,T}}}, from, to, semaphores::Vector
+    array::Elements{K,T}, from, to, semaphores::Vector
 ) where {K,T}
     i = to
     sem_key = semaphore_key(K)
@@ -96,7 +96,7 @@ Consider the subarray of `array` delimited by `window_start` included and
 This method packs the `m` non-empty cells on the left side of the subarray.
 """
 function _pack!(
-    array::Vector{Union{Nothing,Tuple{K,T}}}, window_start, window_end, m
+    array::Elements{K,T}, window_start, window_end, m
 ) where {K,T}
     i = window_start
     j = window_start
@@ -122,7 +122,7 @@ This method spreads evenly the `m` non-empty cells that have been packed on the
 left side of the subarray.
 """
 function _spread!(
-    array::Vector{Union{Nothing,Tuple{K,T}}}, window_start, window_end, m
+    array::Elements{K,T}, window_start, window_end, m
 ) where {K,T}
     capacity = window_end - window_start + 1
     nb_empty_cells = capacity - m
@@ -146,7 +146,7 @@ function _spread!(
 end
 
 function _spread!(
-    array::Vector{Union{Nothing,Tuple{K,T}}}, window_start, window_end, m, semaphores
+    array::Elements{K,T}, window_start, window_end, m, semaphores
 ) where {K,T}
     capacity = window_end - window_start + 1
     nb_empty_cells = capacity - m
