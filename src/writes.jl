@@ -8,23 +8,20 @@ Return the position where the element is located and a boolean equal to `true`
 if it is a new `key`.
 """
 function insert!(
-    array::Elements{K,T}, key::K, value, from::Int, to::Int, seg_cap::Int,
-    semaphores
+    array::Elements{K,T}, key::K, value, from::Int, to::Int, semaphores
 ) where {K,T}
     (pos, _) = find(array, key, from, to)
-    seg_start = (_segidofpos(pos, seg_cap) - 1) * seg_cap + 1
-    seg_end = _segidofpos(pos, seg_cap) * seg_cap
     if _getkey(array, pos) == key
         array[pos] = (key, value)
         return (pos, false)
     end
 
     # insert the new key after the one found by the binary search
-    return _insert!(array, key, value, pos, seg_cap, semaphores)
+    return _insert!(array, key, value, pos, semaphores)
 end
 
 function _insert!(
-    array::Elements{K,T}, key::K, value, pos::Int, seg_cap::Int, semaphores
+    array::Elements{K,T}, key::K, value, pos::Int, semaphores
 ) where {K,T}
     insertion_pos = pos
     next_empty_pos = _nextemptypos(array, pos)
@@ -44,6 +41,6 @@ function _insert!(
     return (insertion_pos, true)
 end
 
-function insert!(array::Elements{K,T}, key::K, value, seg_cap::Int, semaphores) where {K,T}
-    return insert!(array, key, value, 1, length(array), seg_cap, semaphores)
+function insert!(array::Elements{K,T}, key::K, value, semaphores) where {K,T}
+    return insert!(array, key, value, 1, length(array), semaphores)
 end

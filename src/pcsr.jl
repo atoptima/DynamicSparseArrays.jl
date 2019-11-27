@@ -69,10 +69,7 @@ function addpartition!(pcsc::PackedCSC{K,T}) where {K,T}
     pcsc.nb_partitions += 1
     sem_val = T(pcsc.nb_partitions)
     push!(pcsc.semaphores, sem_pos)
-    return _insert!(
-        pcsc.pma.array, sem_key, sem_val, sem_pos, pcsc.pma.segment_capacity,
-        pcsc.semaphores
-    )
+    return _insert!(pcsc.pma.array, sem_key, sem_val, sem_pos, pcsc.semaphores)
 end
 
 
@@ -113,10 +110,7 @@ function Base.setindex!(pcsc::PackedCSC{K,T}, value, key::K, partition::Int) whe
     if partition != pcsc.nb_partitions
         to = pcsc.semaphores[partition + 1] - 1
     end
-    insert_pos, new_elem = insert!(
-        pcsc.pma.array, key, value, from, to, pcsc.pma.segment_capacity, 
-        pcsc.semaphores
-    )
+    insert_pos, new_elem = insert!(pcsc.pma.array, key, value, from, to, pcsc.semaphores)
     if new_elem
         pcsc.pma.nb_elements += 1
         win_start, win_end, nbcells = _look_for_rebalance!(pcsc.pma, insert_pos)

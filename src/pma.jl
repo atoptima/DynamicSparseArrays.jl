@@ -123,7 +123,7 @@ end
 
 # setindex
 function Base.setindex!(pma::PackedMemoryArray, value, key)
-    set_pos, new_elem = insert!(pma.array, key, value, pma.segment_capacity, nothing)
+    set_pos, new_elem = insert!(pma.array, key, value, nothing)
     if new_elem
         pma.nb_elements += 1
         win_start, win_end, nbcells = _look_for_rebalance!(pma, set_pos)
