@@ -1,7 +1,7 @@
 #_segidofpos(pos::Int, seg_capacity::Int) = ((pos - 1) ÷ seg_capacity) + 1
-_isempty(array::Elements, pos::Int) = array[pos] === nothing
+_isempty(array, pos::Int) = array[pos] === nothing
 
-function _nextemptypos(array::Elements, from::Int)
+function _nextemptypos(array, from::Int)
     pos = from + 1
     while pos <= length(array)
         _isempty(array, pos) && return pos
@@ -10,7 +10,16 @@ function _nextemptypos(array::Elements, from::Int)
     return 0
 end
 
-function _previousemptypos(array::Elements, from::Int)
+function _nextnonemptypos(array, from::Int)
+    pos = from + 1
+    while pos <= length(array)
+        !_isempty(array, pos) && return pos
+        pos += 1
+    end
+    return 0
+end
+
+function _previousemptypos(array, from::Int)
     pos = from - 1
     while pos >= 1
         _isempty(array, pos) && return pos
@@ -19,7 +28,14 @@ function _previousemptypos(array::Elements, from::Int)
     return 0
 end
 
-function _getkey(array::Elements{K,T}, pos::Int)::Union{Nothing, K} where {K,T}
+function _getkey(array, pos::Int)
+    if pos == 0 || _isempty(array, pos)
+        return nothing
+    end
+    return array[pos]
+end
+
+function _getkey(array::Elements{K,T}, pos::Int) where {K,T}
     if pos == 0 || _isempty(array, pos)
         return nothing
     end

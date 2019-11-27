@@ -6,7 +6,7 @@ mutable struct PackedCSC{K,T<:Real}
 end
 
 mutable struct MappedPackedCSC{K,L,T<:Real}
-    col_keys::Vector{L} # the position of the key is the position of the column
+    col_keys::Vector{Union{Nothing, L}} # the position of the key is the position of the column
     pcsc::PackedCSC{K,T}
 end
 
@@ -49,7 +49,8 @@ function MappedPackedCSC(
     values::Vector{Vector{T}}, combine::Function = +
 ) where {K,L,T <: Real}
     pcsc = PackedCSC(row_keys, values, combine)
-    return MappedPackedCSC(column_keys, pcsc)
+    col_keys = Vector{Union{Nothing,L}}(column_keys)
+    return MappedPackedCSC(col_keys, pcsc)
 end
 
 function _even_rebalance!(pcsc::PackedCSC, window_start, window_end, nbcells)
@@ -72,17 +73,34 @@ function addpartition!(pcsc::PackedCSC{K,T}) where {K,T}
     return _insert!(pcsc.pma.array, sem_key, sem_val, sem_pos, pcsc.semaphores)
 end
 
+function _position_of_partition_end(pcsc, partition)
+    pos = length(pcsc.pma.array) 
+    next_partition = _nextnonemptypos(pcsc.semaphores, partition)
+    if next_partition != 0
+        pos = pcsc.semaphores[next_partition] - 1
+    end
+    return pos
+end
+
 function deletepartition!(pcsc::PackedCSC{K,T}, partition::Int) where {K,T}
     len = length(pcsc.semaphores)
     1 <= partition <= len || throw(BoundsError("cannot access $(len)-elements partition at index [$(partition)]."))
     pcsc.nb_partitions -= 1
     sem_pos = pcsc.semaphores[partition]
-    # Delete semaphore
-    _delete!(pcsc.pma.array, sem_pos)
+    partition_end_pos = _position_of_partition_end(pcsc, partition)
+    # Delete semaphore & content of the column
+    purge!(pcsc.pma.array, sem_pos, partition_end_pos)
     pcsc.semaphores[partition] = nothing
     return
 end
 
+function deletecolumn!(mpcsc::MappedPackedCSC{K,L,T}, col::K) where {K,L,T}
+    col_pos, col_key = find(mpcsc.col_keys, col)
+    col_key != col && throws(ArgumentError("column $(col) does not exist."))
+    mpcsc.col_keys[col_pos] = nothing
+    deletepartition!(mpcsc.pcsc, col_pos)
+    return true
+end
 
 Base.ndims(pma::PackedCSC) = 2
 Base.size(pma::PackedCSC) = (10000, 100000)
@@ -92,10 +110,7 @@ Base.size(pma::PackedCSC) = (10000, 100000)
 # getindex
 function find(pcsc::PackedCSC, partition, key)
     from = pcsc.semaphores[partition]
-    to = length(pcsc.pma.array) 
-    if partition != pcsc.nb_partitions
-        to = pcsc.semaphores[partition + 1] - 1
-    end
+    to = _position_of_partition_end(pcsc, partition)
     return find(pcsc.pma.array, key, from, to)
 end
 
@@ -106,8 +121,8 @@ function Base.getindex(pcsc::PackedCSC{K,T}, key::K, partition::Int) where {K,T}
 end
 
 function Base.getindex(mpcsc::MappedPackedCSC{L,K,T}, row::L, col::K) where {L,K,T}
-    col_pos = findfirst(col_key -> col_key == col, mpcsc.col_keys)
-    if col_pos == nothing # The column does not exist
+    col_pos, col_key = find(mpcsc.col_keys, col)
+    if col_key != col # The column does not exist
         return zero(T)
     end
     return mpcsc.pcsc[row, col_pos]
@@ -131,10 +146,10 @@ function Base.setindex!(pcsc::PackedCSC{K,T}, value, key::K, partition::Int) whe
 end
 
 function Base.setindex!(mpcsc::MappedPackedCSC{L,K,T}, value::T, row::L, col::K) where {L,K,T}
-    col_pos = findfirst(col_key -> col_key == col, mpcsc.col_keys)
-    if col_pos == nothing
+    col_pos, col_key = find(mpcsc.col_keys, col)
+    if col_key != col
         last_col = mpcsc.col_keys[end]
-        col <= last_col && throw(ArgumentError("New column must have id greater than last column id; got id $(col), last column id is $(last_col)."))
+        col > last_col || throw(ArgumentError("New column must have id greater than last column id; got id $(col), last column id is $(last_col)."))
         push!(mpcsc.col_keys, col)
         addpartition!(mpcsc.pcsc)
         col_pos = length(mpcsc.col_keys) 

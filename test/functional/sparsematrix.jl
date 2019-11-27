@@ -203,5 +203,30 @@ function dynsparsematrix_insertions_and_gets()
         @test matrix[1,col] == 1
     end
 
-    # TODO
+    check_semaphores(matrix.pcsc.pma.array, matrix.pcsc.semaphores)
+end
+
+function dynsparsematrix_deletions()
+    I = [1, 1, 2, 4, 3, 5, 1, 3, 1, 5, 1, 5, 4]
+    J = [4, 3, 3, 7, 18, 9, 3, 18, 4, 2, 3, 1, 7]
+    V = [1, 8, 10, 2, -5, 3, 2, 1, 1, 1, 5, 3, 2]
+    matrix = dynamicsparse(I,J,V)
+    @test matrix[1,4] == 1 + 1
+    @test matrix[1,3] == 8 + 2 + 5
+    @test matrix[4,7] == 2 + 2
+    @test matrix[3,18] == -5 + 1
+    @test matrix[5,9] == 3
+    @test matrix[5,2] == 1
+    @test matrix[5,1] == 3
+    @test matrix[2,3] == 10
+
+    check_semaphores(matrix.pcsc.pma.array, matrix.pcsc.semaphores)
+
+    DynamicSparseArrays.deletecolumn!(matrix, 3)
+    check_semaphores(matrix.pcsc.pma.array, matrix.pcsc.semaphores)
+
+    for i in 1:5
+        @test matrix[i,3] == 0
+    end
+    return
 end

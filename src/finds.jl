@@ -10,9 +10,7 @@ Look for the element indexed by `key` in `array`.
 Return the position of the element in `array` and the element.
 Return `(0, nothing)` if the `key` is not in the `array`.
 """
-function find(
-    array::Elements{K,T}, key::K, from::Int, to::Int
-) where {K,T}
+function find(array::Vector{Union{Nothing, T}}, key, from::Int, to::Int) where {T}
     while from <= to
         mid = (from + to) ÷ 2
         i = mid
@@ -40,4 +38,8 @@ function find(
         return (i, array[i])
     end
     return (0, nothing)
+end
+
+function find(array::Vector{Union{Nothing, T}}, key) where {T}
+    return find(array, key, 1, length(array))
 end

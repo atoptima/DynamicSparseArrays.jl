@@ -70,3 +70,18 @@ end
 function delete!(array::Elements{K,T}, key::K) where {K,T}
     return delete!(array, key, 1, length(array))
 end
+
+"""
+    purge!(array, from, to)
+
+Delete from `array` all elements between positions `from` and `to` included.
+"""
+function purge!(array::Elements{K,T}, from::Int, to::Int) where {K,T}
+    to < from && return (0, false)
+    to == from && _delete!(array, from)
+    for pos in from:to
+        _delete!(array, pos)
+    end
+    mid = from + (to - from) ÷ 2
+    return (mid, true)
+end

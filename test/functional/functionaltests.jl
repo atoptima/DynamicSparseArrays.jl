@@ -21,7 +21,7 @@ function functional_tests()
     @testset "Insertions & finds in PackedCSC matrix" begin
         pcsc_insertions_and_gets()
     end
-    @testset "Deletions" begin
+    @testset "Deletions in PackedCSC matrix" begin
         pcsc_deletions()
     end
 
@@ -31,5 +31,8 @@ function functional_tests()
     end
     @testset "Insertions & finds in MappedPackedCSC matrix" begin
         dynsparsematrix_insertions_and_gets()
+    end
+    @testset "Deletions in MappedPackedCSC matrix" begin
+        dynsparsematrix_deletions()
     end
 end
