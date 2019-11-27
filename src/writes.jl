@@ -20,6 +20,7 @@ function insert!(
     return _insert!(array, key, value, pos, semaphores)
 end
 
+# Element (key, value) will be inserted after pos
 function _insert!(
     array::Elements{K,T}, key::K, value, pos::Int, semaphores
 ) where {K,T}
@@ -43,4 +44,25 @@ end
 
 function insert!(array::Elements{K,T}, key::K, value, semaphores) where {K,T}
     return insert!(array, key, value, 1, length(array), semaphores)
+end
+
+"""
+    delete!(array, key, from, to, semaphores)
+
+Delete from `array` the element having key `key` and located in the subarray 
+starting at position `from` and ending at position `to`.
+
+Return `true` if the element has been deleted; `false` otherwise.
+"""
+function delete!(array::Elements{K,T}, key::K, from::Int, to::Int) where {K,T}
+    (pos, _) = find(array, key, from, to)
+    if _getkey(array, pos) == key
+        array[pos] = nothing
+        return (pos, true)
+    end
+    return (0, false)
+end
+
+function delete!(array::Elements{K,T}, key::K) where {K,T}
+    return delete!(array, key, 1, length(array))
 end

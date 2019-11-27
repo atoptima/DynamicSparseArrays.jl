@@ -66,6 +66,9 @@ function _even_rebalance!(pma::PackedMemoryArray, window_start, window_end, m)
 end
 
 function _look_for_rebalance!(pma::PackedMemoryArray, pos::Int)
+    p = 0.0
+    t = 0.0
+    density = 0.0
     height = 0
     prev_win_start = pos
     prev_win_end = pos - 1
@@ -78,9 +81,9 @@ function _look_for_rebalance!(pma::PackedMemoryArray, pos::Int)
         nb_cells_left += _nbcells(pma.array, win_start, prev_win_start)
         nb_cells_right += _nbcells(pma.array, prev_win_end + 1, win_end + 1)
         density = (nb_cells_left + nb_cells_right) / window_capacity
+        p = pma.p_0 + pma.p_d * height
         t = pma.t_0 + pma.t_d * height
-        if density <= t
-            p = pma.p_0 + pma.p_d * height
+        if p <= density <= t
             nb_cells = nb_cells_left + nb_cells_right
             return win_start, win_end, nb_cells
         end
@@ -88,8 +91,15 @@ function _look_for_rebalance!(pma::PackedMemoryArray, pos::Int)
         prev_win_end = win_end
         height += 1
     end
-    _extend!(pma)
     nb_cells = nb_cells_left + nb_cells_right
+    if density > t 
+        _extend!(pma)
+    end
+    if density < p
+        # We must pack before shrinking otherwise we loose data
+        _pack!(pma.array, 1, length(pma.array)/2, nb_cells)
+        _shrink!(pma)
+    end
     return 1, pma.capacity, nb_cells
 end
 
@@ -103,6 +113,15 @@ function _extend!(pma::PackedMemoryArray)
     return
 end
 
+function _shrink!(pma::PackedMemoryArray)
+    pma.capacity /= 2
+    pma.nb_segments /= 2
+    pma.height -= 1
+    pma.t_d = (pma.t_h - pma.t_0) / pma.height
+    pma.p_d = (pma.p_h - pma.p_0) / pma.height 
+    resize!(pma.array, pma.capacity)
+    return
+end
 
 Base.ndims(pma::PackedMemoryArray) = 1
 Base.size(pma::PackedMemoryArray) = (pma.nb_elements,)
@@ -122,17 +141,24 @@ end
 
 
 # setindex
-function Base.setindex!(pma::PackedMemoryArray, value, key)
-    set_pos, new_elem = insert!(pma.array, key, value, nothing)
-    if new_elem
-        pma.nb_elements += 1
-        win_start, win_end, nbcells = _look_for_rebalance!(pma, set_pos)
-        _even_rebalance!(pma, win_start, win_end, nbcells)
-        return true
+function Base.setindex!(pma::PackedMemoryArray{K,T,P}, value, key) where {K,T,P}  
+    if value != zero(T) # We insert
+        set_pos, new_elem = insert!(pma.array, key, value, nothing)
+        if new_elem
+            pma.nb_elements += 1
+            win_start, win_end, nbcells = _look_for_rebalance!(pma, set_pos)
+            _even_rebalance!(pma, win_start, win_end, nbcells)
+        end
+    else # We delete
+        set_pos, deleted_elem = delete!(pma.array, key)
+        if deleted_elem
+            pma.nb_elements -= 1
+            win_start, win_end, nbcells = _look_for_rebalance!(pma, set_pos)
+            _even_rebalance!(pma, win_start, win_end, nbcells)
+        end
     end
-    return false
+    return
 end
-
 
 # Builder (exported)
 function _prepare_keys_vals!(keys::Vector{K}, values::Vector{T}, combine::Function) where {K,T}
@@ -178,7 +204,6 @@ function dynamicsparsevec(I::Vector{K}, V::Vector{T}, combine::Function) where {
 end
 
 dynamicsparsevec(I,V) = dynamicsparsevec(I,V,+)
-
 
 # show TODO : to be improved (issue #1)
 function Base.show(io::IO, pma::PackedMemoryArray{K,T,P}) where {K,T,P}

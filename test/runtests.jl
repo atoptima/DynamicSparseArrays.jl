@@ -73,6 +73,33 @@ function dynsparsevec_insertions_and_gets()
     return
 end
 
+function dynamicsparsevec_deletions()
+    I = [1, 2, 5, 5, 3, 10, 1, 8, 1, 5]
+    V = [1.0, 3.5, 2.1, 8.5, 2.1, 1.1, 5.0, 7.8, 1.1, 2.0]
+
+    vec = dynamicsparsevec(I,V)
+
+    @test repr(vec) == "16-element DynamicSparseArrays.PackedMemoryArray{Int64,Float64,DynamicSparseArrays.NoPredictor} with 6 stored entries.\n"
+
+    @test vec[1] == 1.0 + 1.1 + 5.0
+    @test vec[2] == 3.5
+    @test vec[3] == 2.1
+    @test vec[4] == 0.0
+    @test vec[5] == 2.1 + 8.5 + 2.0
+    @test vec[8] == 7.8
+    @test vec[10] == 1.1
+
+    vec[1] = 0
+    @test vec[1] == 0
+
+    vec[2] = 0
+    @test vec[2] == 0
+
+    vec[3] = 0
+    @test vec[3] == 0
+    return
+end
+
 function pcsc_factory(nbpartitions, prob_empty_partition::Float64 = 0.0)
     partitions = Vector{Dict{Int, Float64}}()
     for p in 1:nbpartitions
@@ -262,6 +289,9 @@ function pma()
     end
     @testset "Insertions & finds in dyn sparse vector" begin
         dynsparsevec_insertions_and_gets()
+    end
+    @testset "Deletions in dyn sparse vector" begin
+        dynamicsparsevec_deletions()
     end
     return
 end
