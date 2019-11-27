@@ -60,8 +60,8 @@ function _even_rebalance!(pma::PackedMemoryArray, window_start, window_end, m)
         # It is a leaf within the treshold, we stop
         return
     end
-    _pack!(pma.array, window_start, window_end, m)
-    _spread!(pma.array, window_start, window_end, m)
+    pack!(pma.array, window_start, window_end, m)
+    spread!(pma.array, window_start, window_end, m)
     return
 end
 
@@ -97,7 +97,7 @@ function _look_for_rebalance!(pma::PackedMemoryArray, pos::Int)
     end
     if density < p
         # We must pack before shrinking otherwise we loose data
-        _pack!(pma.array, 1, length(pma.array)/2, nb_cells)
+        pack!(pma.array, 1, length(pma.array)/2, nb_cells)
         _shrink!(pma)
     end
     return 1, pma.capacity, nb_cells

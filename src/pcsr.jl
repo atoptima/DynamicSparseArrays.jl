@@ -58,8 +58,8 @@ function _even_rebalance!(pcsc::PackedCSC, window_start, window_end, nbcells)
         # It is a leaf within the treshold, we stop
         return
     end
-    _pack!(pcsc.pma.array, window_start, window_end, nbcells)
-    _spread!(pcsc.pma.array, window_start, window_end, nbcells, pcsc.semaphores)
+    pack!(pcsc.pma.array, window_start, window_end, nbcells)
+    spread!(pcsc.pma.array, window_start, window_end, nbcells, pcsc.semaphores)
     return
 end
 

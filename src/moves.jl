@@ -7,7 +7,10 @@ position `to - 1`.
 function _movecellstoright!(
     array::Elements{K,T}, from::Int, to::Int, semaphores
 ) where {K,T}
+    len = length(array)
     array[to] == nothing || throw(ArgumentError("The cell erased by the movement must contain nothing."))
+    1 <= from <= len || throw(BoundsError("cannot access $(len)-elements array at index [$(from)]."))
+    1 <= to <= len || throw(BoundsError("cannot access $(len)-elements array at index [$(to)]."))
     _moverightloop!(array, from, to, semaphores)
     return
 end
@@ -53,7 +56,10 @@ position `to + 1`.
 function _movecellstoleft!(
     array::Elements{K,T}, from::Int, to::Int, semaphores
 ) where {K,T}
+    len = length(array)
     array[to] == nothing || throw(ArgumentError("The cell erased by the movement must contain nothing."))
+    1 <= from <= len || throw(BoundsError("cannot access $(len)-elements array at index [$(from)]."))
+    1 <= to <= len || throw(BoundsError("cannot access $(len)-elements array at index [$(to)]."))
     _moveleftloop!(array, from, to, semaphores)
     return
 end
@@ -95,7 +101,7 @@ Consider the subarray of `array` delimited by `window_start` included and
 `window_end` included.
 This method packs the `m` non-empty cells on the left side of the subarray.
 """
-function _pack!(
+function pack!(
     array::Elements{K,T}, window_start, window_end, m
 ) where {K,T}
     i = window_start
@@ -121,7 +127,7 @@ Consider the subarray of `array` delimited by `window_start` included and
 This method spreads evenly the `m` non-empty cells that have been packed on the 
 left side of the subarray.
 """
-function _spread!(
+function spread!(
     array::Elements{K,T}, window_start, window_end, m
 ) where {K,T}
     capacity = window_end - window_start + 1
@@ -145,7 +151,7 @@ function _spread!(
     return
 end
 
-function _spread!(
+function spread!(
     array::Elements{K,T}, window_start, window_end, m, semaphores
 ) where {K,T}
     capacity = window_end - window_start + 1

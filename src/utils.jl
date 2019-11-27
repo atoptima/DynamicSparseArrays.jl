@@ -1,4 +1,4 @@
-_segidofpos(pos::Int, seg_capacity::Int) = ((pos - 1) ÷ seg_capacity) + 1
+#_segidofpos(pos::Int, seg_capacity::Int) = ((pos - 1) ÷ seg_capacity) + 1
 _isempty(array::Elements, pos::Int) = array[pos] === nothing
 
 function _nextemptypos(array::Elements, from::Int)
