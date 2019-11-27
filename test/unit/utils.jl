@@ -18,7 +18,7 @@ function array_factory(capacity::Int, expnbempty::Int)
             array[j] = nothing
             nbempty += 1
         else
-            val = rand(1:150)
+            val = rand(rng, 1:150)
             array[j] = (i, val)
             i += 1
         end
@@ -55,7 +55,7 @@ function partitioned_array_factory(capacity::Int, expnbempty::Int, probpartition
                 i = 1
                 k += 1
             else
-                val = rand(1:150)
+                val = rand(rng, 1:150)
                 array[j] = (i, val)
                 i += 1
             end

@@ -89,7 +89,11 @@ function deletepartition!(pcsc::PackedCSC{K,T}, partition::Int) where {K,T}
     sem_pos = pcsc.semaphores[partition]
     partition_end_pos = _position_of_partition_end(pcsc, partition)
     # Delete semaphore & content of the column
-    purge!(pcsc.pma.array, sem_pos, partition_end_pos)
+    pos, rebalance = purge!(pcsc.pma.array, sem_pos, partition_end_pos)
+    if rebalance
+        win_start, win_end, nbcells = _look_for_rebalance!(pcsc.pma, pos)
+        _even_rebalance!(pcsc, win_start, win_end, nbcells)
+    end
     pcsc.semaphores[partition] = nothing
     return
 end
@@ -136,11 +140,20 @@ function Base.setindex!(pcsc::PackedCSC{K,T}, value, key::K, partition::Int) whe
     if partition != pcsc.nb_partitions
         to = pcsc.semaphores[partition + 1] - 1
     end
-    insert_pos, new_elem = insert!(pcsc.pma.array, key, value, from, to, pcsc.semaphores)
-    if new_elem
-        pcsc.pma.nb_elements += 1
-        win_start, win_end, nbcells = _look_for_rebalance!(pcsc.pma, insert_pos)
-        _even_rebalance!(pcsc, win_start, win_end, nbcells)
+    if value != zero(T) # we insert
+        insert_pos, new_elem = insert!(pcsc.pma.array, key, value, from, to, pcsc.semaphores)
+        if new_elem
+            pcsc.pma.nb_elements += 1
+            win_start, win_end, nbcells = _look_for_rebalance!(pcsc.pma, insert_pos)
+            _even_rebalance!(pcsc, win_start, win_end, nbcells)
+        end
+    else # We delete
+        set_pos, deleted_elem = delete!(pcsc.pma.array, key, from, to)
+        if deleted_elem
+            pcsc.pma.nb_elements -= 1
+            win_start, win_end, nbcells = _look_for_rebalance!(pcsc.pma, set_pos)
+            _even_rebalance!(pcsc, win_start, win_end, nbcells)
+        end
     end
     return 
 end
