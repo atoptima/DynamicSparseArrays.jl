@@ -1,6 +1,6 @@
 mutable struct PackedCSC{K,T<:Real}
     nb_partitions::Int
-    semaphores::Vector{Int} # pos of the semaphore in the pma
+    semaphores::Vector{Union{Nothing, Int}} # pos of the semaphore in the pma
     #nb_elements_in_partition::Vector{Int} # nb elements after each semaphore
     pma::PackedMemoryArray{K,T,NoPredictor}
 end
@@ -34,7 +34,7 @@ function PackedCSC(
         push!(pcsc_values, nvalues...)
     end
     pma = _pma(pcsc_keys, pcsc_values)
-    semaphores = zeros(Int, nb_semaphores)
+    semaphores = Vector{Union{Int, Nothing}}(zeros(Int, nb_semaphores))
     for (pos, pair) in enumerate(pma.array)
         if pair != nothing && pair[1] == semaphore_key(L)
             id = Int(pair[2])
@@ -67,9 +67,20 @@ function addpartition!(pcsc::PackedCSC{K,T}) where {K,T}
     sem_key = semaphore_key(K)
     sem_pos = length(pcsc.pma.array)
     pcsc.nb_partitions += 1
-    sem_val = T(pcsc.nb_partitions)
     push!(pcsc.semaphores, sem_pos)
+    sem_val = T(length(pcsc.semaphores))
     return _insert!(pcsc.pma.array, sem_key, sem_val, sem_pos, pcsc.semaphores)
+end
+
+function deletepartition!(pcsc::PackedCSC{K,T}, partition::Int) where {K,T}
+    len = length(pcsc.semaphores)
+    1 <= partition <= len || throw(BoundsError("cannot access $(len)-elements partition at index [$(partition)]."))
+    pcsc.nb_partitions -= 1
+    sem_pos = pcsc.semaphores[partition]
+    # Delete semaphore
+    _delete!(pcsc.pma.array, sem_pos)
+    pcsc.semaphores[partition] = nothing
+    return
 end
 
 

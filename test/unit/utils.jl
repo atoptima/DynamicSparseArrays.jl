@@ -67,8 +67,25 @@ end
 function check_semaphores(
     array::Vector{Union{Nothing, Tuple{K,T}}}, semaphores
 ) where {K,T}
+    nb_off_semaphores = 0
+    nb_sem_in_array = 0
     sem_key = DynamicSparseArrays.semaphore_key(K)
     for (part_id, pos) in enumerate(semaphores)
-        @test array[pos] == (sem_key, part_id)
+        if pos != nothing
+            @test array[pos] == (sem_key, part_id)
+            nb_off_semaphores += 1
+        end
     end
+
+    for (pos, cell) in enumerate(array)
+        if cell != nothing
+            key, value = cell
+            if key == sem_key
+                @test pos == semaphores[Int(value)]
+                nb_sem_in_array += 1
+            end
+        end
+    end
+    @test nb_off_semaphores == nb_sem_in_array
+    return
 end

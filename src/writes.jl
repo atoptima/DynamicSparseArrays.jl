@@ -57,10 +57,14 @@ Return `true` if the element has been deleted; `false` otherwise.
 function delete!(array::Elements{K,T}, key::K, from::Int, to::Int) where {K,T}
     (pos, _) = find(array, key, from, to)
     if _getkey(array, pos) == key
-        array[pos] = nothing
-        return (pos, true)
+        return _delete!(array, pos)
     end
     return (0, false)
+end
+
+function _delete!(array::Elements{K,T}, pos::Int) where {K,T}
+    array[pos] = nothing
+    return (pos, true)
 end
 
 function delete!(array::Elements{K,T}, key::K) where {K,T}
