@@ -146,15 +146,16 @@ function find(pma::PackedMemoryArray{K,T,P}, key::K) where {K,T,P}
     return find(pma.array, key, 1, length(pma.array))
 end
 
-function Base.getindex(pma::PackedMemoryArray{K,T,P}, key) where {K,T,P}
+function Base.getindex(pma::PackedMemoryArray{K,T,P}, key::K) where {K,T,P}
     fpos, fpair = find(pma, key)
     fpair != nothing && fpair[1] == key && return fpair[2]
     return zero(T)
 end
+Base.getindex(pma::PackedMemoryArray, ::Colon) = pma
 
 
 # setindex
-function Base.setindex!(pma::PackedMemoryArray{K,T,P}, value, key) where {K,T,P}  
+function Base.setindex!(pma::PackedMemoryArray{K,T,P}, value, key::K) where {K,T,P}  
     if value != zero(T) # We insert
         set_pos, new_elem = insert!(pma.array, key, value, nothing)
         if new_elem
@@ -172,6 +173,8 @@ function Base.setindex!(pma::PackedMemoryArray{K,T,P}, value, key) where {K,T,P}
     end
     return
 end
+
+
 
 # Builder (exported)
 function _prepare_keys_vals!(keys::Vector{K}, values::Vector{T}, combine::Function) where {K,T}

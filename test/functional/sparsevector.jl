@@ -48,8 +48,7 @@ function dynsparsevec_simple_use()
     end
 
     # Test 4 : SemiColon
-    #@test vec[:] === vec
-
+    @test vec[:] === vec
     return
 end
 
