@@ -11,7 +11,7 @@ function insert!(
     array::Elements{K,T}, key::K, value, from::Int, to::Int, semaphores
 ) where {K,T}
     (pos, _) = find(array, key, from, to)
-    if _getkey(array, pos) == key
+    if _getkey(array, pos) == key && from <= pos <= to
         array[pos] = (key, value)
         return (pos, false)
     end
@@ -36,7 +36,7 @@ function _insert!(
             _movecellstoleft!(array, pos, previous_empty_pos, semaphores)
             array[pos] = (key, value)
         else
-            error("No empty cell to insert a new element in the PMA.") # Should not occur thanks to density.
+            error("No empty cell to insert a new element.") # Should not occur thanks to density.
         end
     end
     return (insertion_pos, true)

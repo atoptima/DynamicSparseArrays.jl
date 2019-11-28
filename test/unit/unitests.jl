@@ -1,6 +1,7 @@
 include("utils.jl")
 include("moves.jl")
 include("finds.jl")
+include("writes.jl")
 include("rebalance.jl")
 
 function unit_tests()
@@ -27,6 +28,11 @@ function unit_tests()
 
     @testset "Finds - unit tests" begin
         test_find()
+    end
+
+    @testset "Writes - unit tests" begin
+        test_insert()
+        test_delete()
     end
     return
 end
