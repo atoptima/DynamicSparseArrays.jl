@@ -1,5 +1,5 @@
 function test_movecellstoleft()
-    array, nbempty, _ = array_factory(20, 4)
+    array, nbempty, _ = array_factory(20, 4, 3)
 
     # Test 1 : normal use
     array1 = Vector(array)
@@ -50,7 +50,7 @@ function test_movecellstoleft_with_semaphores()
 end
 
 function test_movecellstoright()
-    array, nbempty, _ = array_factory(20, 4)
+    array, nbempty, _ = array_factory(20, 4, 3)
 
     # Test 1 : normal use
     array1 = Vector(array)
@@ -83,7 +83,6 @@ function test_movecellstoright()
     return
 end
 
-
 function test_movecellstoright_with_semaphores()
     array, semaphores, _, _ = partitioned_array_factory(50, 20, 0.2)
     check_semaphores(array, semaphores)
@@ -103,7 +102,7 @@ function test_movecellstoright_with_semaphores()
 end
 
 function test_pack_spread(capacity::Int, expnbempty::Int)
-    array, nbempty, nbcells = array_factory(capacity, expnbempty)
+    array, nbempty, nbcells = array_factory(capacity, expnbempty, 1)
     DynamicSparseArrays.pack!(array, 1, length(array), nbcells)
     for i in 1:nbcells
         @test array[i][1] == i
@@ -156,5 +155,3 @@ function test_pack_spread_with_semaphores(capacity::Int, expnbempty::Int)
     end
     return
 end
-
-

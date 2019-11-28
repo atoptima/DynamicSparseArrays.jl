@@ -3,12 +3,12 @@ Create an array that simulates the array of the PackedMemoryArray type.
 Inputs : 
     - `capacity` is the size of the array
     - `expnbempty` is the number of empty entries expected in the returned array
+    - `k` is the maximum jump that the key can do
 Output (3-Tuple) :
     - array
     - number of empty entries
-    - number of non-empty entries
 """
-function array_factory(capacity::Int, expnbempty::Int)
+function array_factory(capacity::Int, expnbempty::Int, k::Int)
     nbempty = 0
     array =  Vector{Union{Tuple{Int,Int}, Nothing}}(nothing, capacity)
     i = 1
@@ -20,10 +20,10 @@ function array_factory(capacity::Int, expnbempty::Int)
         else
             val = rand(rng, 1:150)
             array[j] = (i, val)
-            i += 1
+            i += rand(rng, 1:k)
         end
     end
-    return array, nbempty, i - 1
+    return array, nbempty, capacity - nbempty
 end
 
 """
