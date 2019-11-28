@@ -22,7 +22,7 @@ function test_find()
     end
 
 
-    # Test 2 : look for keys in the subarray starting at 4 & finishing at 8
+    # Test 2 : look for keys in the subarray starting at pos 4 & finishing at pos 6
 
     # [ nothing, (3, 10), (4, 10),  nothing, (8, 10), nothing,       (9, 10)      ]
     #  |----- left outside ------| |------  subarray --------| |- right outside -|
