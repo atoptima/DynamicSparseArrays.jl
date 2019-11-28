@@ -41,7 +41,22 @@ function test_insert()
 end
 
 function test_delete()
-    # No need to test with semaphores
+    # No need to test with semaphores and subarrays
+    array = [(2, 10), (3, 10), nothing, (8, 10), (9, 10), nothing, (10, 10)]
 
-    
+    # Test 1 : delete element with key 2
+    output = DynamicSparseArrays.delete!(array, 2)
+    @test array == [nothing, (3, 10), nothing, (8, 10), (9, 10), nothing, (10, 10)]
+    @test output == (1, true)
+
+    # Test 2 : delete element with key 2 (already deleted)
+    output = DynamicSparseArrays.delete!(array, 2)
+    @test array == [nothing, (3, 10), nothing, (8, 10), (9, 10), nothing, (10, 10)]
+    @test output == (0, false) 
+
+    # Test 3 : purge from pos 3 to pos 5
+    output = DynamicSparseArrays.purge!(array, 3, 5)
+    @test array == [nothing, (3, 10), nothing, nothing, nothing, nothing, (10, 10)]
+    @test output == (4, true)
+    return
 end
