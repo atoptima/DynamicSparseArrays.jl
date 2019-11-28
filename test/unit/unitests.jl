@@ -1,5 +1,6 @@
 include("utils.jl")
 include("moves.jl")
+include("finds.jl")
 include("rebalance.jl")
 
 function unit_tests()
@@ -22,6 +23,10 @@ function unit_tests()
         test_pack_spread_with_semaphores(497, 97)
         test_pack_spread_with_semaphores(855, 17)
         test_pack_spread_with_semaphores(1000000, 5961)
+    end
+
+    @testset "Finds - unit tests" begin
+        test_find()
     end
     return
 end

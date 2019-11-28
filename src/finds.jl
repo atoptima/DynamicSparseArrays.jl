@@ -4,11 +4,27 @@
 Look for the element indexed by `key` in the subarray of `array` starting at 
 position `from` and ending at position `to`.
 
+If the element is in the subarray, the method returns the position and the 
+the element.
+
+If the element is not in the subarray, the method returns the position and the 
+element that has the nearest inferior key (predecessor) in the subarray. 
+
+If the element has no predecessor in the subarray, the method returns the
+position and the last element located in the left outside.
+
+
     find(array::Elements, key)
+
 Look for the element indexed by `key` in `array`.
 
-Return the position of the element in `array` and the element.
-Return `(0, nothing)` if the `key` is not in the `array`.
+If the element is in the `array`, the method returns the position and the 
+the element.
+
+If the element is not in the `array`, the method returns the position and the 
+element that has the nearest inferior key (predecessor). 
+
+If the element has no predecessor, the method returns `(0, nothing)`.
 """
 function find(array::Vector{Union{Nothing, T}}, key, from::Int, to::Int) where {T}
     while from <= to
