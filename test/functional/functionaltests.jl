@@ -1,17 +1,13 @@
 include("sparsevector.jl")
 include("sparsematrix.jl")
 
-
 function functional_tests()
     # Dynamic Sparse Vector (pma)
-    @testset "Instantiation (with multiple elements) in dyn sparse vector" begin
-        dynsparsevec_instantiation()
+    @testset "dynsparsevector - func - simple use" begin
+        dynsparsevec_simple_use()
     end
     @testset "Insertions & finds in dyn sparse vector" begin
         dynsparsevec_insertions_and_gets()
-    end
-    @testset "Deletions in dyn sparse vector" begin
-        dynamicsparsevec_deletions()
     end
 
     # PackedCSC
@@ -35,4 +31,5 @@ function functional_tests()
     @testset "Deletions in MappedPackedCSC matrix" begin
         dynsparsematrix_deletions()
     end
+    return
 end

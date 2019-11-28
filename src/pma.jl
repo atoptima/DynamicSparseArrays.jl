@@ -127,6 +127,19 @@ Base.ndims(pma::PackedMemoryArray) = 1
 Base.size(pma::PackedMemoryArray) = (pma.nb_elements,)
 Base.length(pma::PackedMemoryArray) = pma.nb_elements
 
+Base.iterate(pma::PackedMemoryArray) = _iterate(pma, iterate(pma.array))
+Base.iterate(pma::PackedMemoryArray, state) = _iterate(pma, iterate(pma.array, state))
+
+# Ignore empty cells
+function _iterate(pma::PackedMemoryArray, iter_result)
+    while iter_result !== nothing && iter_result[1] === nothing
+        element, state = iter_result
+        iter_result = iterate(pma, state)
+    end
+    return iter_result
+end
+
+Base.lastindex(pma::PackedMemoryArray) = lastindex(pma.array)
 
 # getindex
 function find(pma::PackedMemoryArray{K,T,P}, key::K) where {K,T,P}
