@@ -175,7 +175,6 @@ function Base.setindex!(pma::PackedMemoryArray{K,T,P}, value, key::K) where {K,T
 end
 
 
-
 # Builder (exported)
 function _prepare_keys_vals!(keys::Vector{K}, values::Vector{T}, combine::Function) where {K,T}
     @assert length(keys) == length(values)

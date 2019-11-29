@@ -28,7 +28,38 @@ function pcsc_simple_use()
     
     # Test A.2 : Check value of entries
     matrix = [2 0 3; 3 2 0; 4 0 0; 0 0 0; 0 0 0; 0 4 5; 0 5 0; 0 0 7]
+    nr, nc = size(matrix)
     #@test pcsc1 == matrix # TODO
+    for i in 1:nr, j in 1:nc
+        @test matrix[i,j] == pcsc1[i,j]
+    end
+
+    # Test B.3 : set some entries
+    matrix[1,1] = 4
+    pcsc1[1,1] = 4  # set
+    matrix[1,2] += 3
+    pcsc1[1,2] += 3 # new element 
+    matrix[3,1] = 0
+    pcsc1[3,1] = 0  # rm
+    matrix[4,2] = 1
+    pcsc1[4,2] = 1 # new element
+
+    @test length(pcsc1) == 10
+    @test size(pcsc1)[2] == 3
+
+    #@test pcsc1 == matrix # TODO
+    for i in 1:nr, j in 1:nc
+        @test matrix[i,j] == pcsc1[i,j]
+    end
+
+    pcsc1[10,5] = 9 # new element and new column
+    @test length(pcsc1) == 11
+    @test size(pcsc1)[2] == 5 # 2 new partitions
+
+    pcsc1[1,4] = 2
+    @test length(pcsc1) == 12
+    check_semaphores(pcsc1.pma.array, pcsc1.semaphores)
+    check_key_order(pcsc1.pma.array, pcsc1.semaphores)
 
     # Test B.1
     keys = [[1, 2, 3, 1, 2], Int[], [2, 6, 7, 7, 5], [1, 6, 8, 2, 1]]
@@ -40,6 +71,13 @@ function pcsc_simple_use()
     @test length(pcsc2) == 11
     @test size(pcsc2)[2] == 4
 
+    # Test B.2
+    matrix = [3 0 0 4; 4 0 2 1; 4 0 0 0; 0 0 0 0; 0 0 1 0; 0 0 4 5; 0 0 6 0; 0 0 0 7]
+    nr, nc = size(matrix)
+    #@test pcsc2 == matrix # TODO
+    for i in 1:nr, j in 1:nc
+        @test matrix[i,j] == pcsc2[i,j]
+    end
     return
 end
 

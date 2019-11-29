@@ -76,7 +76,13 @@ function addpartition!(pcsc::PackedCSC{K,T}) where {K,T}
     pcsc.nb_partitions += 1
     push!(pcsc.semaphores, sem_pos)
     sem_val = T(length(pcsc.semaphores))
-    return _insert!(pcsc.pma.array, sem_key, sem_val, sem_pos, pcsc.semaphores)
+    insert_pos, new_elem = _insert!(pcsc.pma.array, sem_key, sem_val, sem_pos, pcsc.semaphores)
+    if new_elem
+        pcsc.pma.nb_elements += 1
+        win_start, win_end, nbcells = _look_for_rebalance!(pcsc.pma, insert_pos)
+        _even_rebalance!(pcsc, win_start, win_end, nbcells)
+    end
+    return
 end
 
 function _position_of_partition_end(pcsc, partition)
@@ -141,27 +147,46 @@ end
 
 # setindex 
 function Base.setindex!(pcsc::PackedCSC{K,T}, value, key::K, partition::Int) where {K,T}
-    from = pcsc.semaphores[partition]
-    to = length(pcsc.pma.array) 
-    if partition != pcsc.nb_partitions
-        to = pcsc.semaphores[partition + 1] - 1
+    if partition > length(pcsc.semaphores)
+        _add_partitions!(pcsc, partition)
     end
-    if value != zero(T) # we insert
-        insert_pos, new_elem = insert!(pcsc.pma.array, key, value, from, to, pcsc.semaphores)
-        if new_elem
-            pcsc.pma.nb_elements += 1
-            win_start, win_end, nbcells = _look_for_rebalance!(pcsc.pma, insert_pos)
-            _even_rebalance!(pcsc, win_start, win_end, nbcells)
-        end
-    else # We delete
-        set_pos, deleted_elem = delete!(pcsc.pma.array, key, from, to)
-        if deleted_elem
-            pcsc.pma.nb_elements -= 1
-            win_start, win_end, nbcells = _look_for_rebalance!(pcsc.pma, set_pos)
-            _even_rebalance!(pcsc, win_start, win_end, nbcells)
-        end
+    from = pcsc.semaphores[partition]
+    to = _position_of_partition_end(pcsc, partition)
+    if value != zero(T)
+        _insert!(pcsc, value, key, from, to)
+    else
+        _delete!(pcsc, key, from, to)
     end
     return 
+end
+
+function _add_partitions!(pcsc, nb_part_to_reach)
+    p = length(pcsc.semaphores) + 1
+    while p <= nb_part_to_reach
+        addpartition!(pcsc)
+        p += 1
+    end
+    return
+end
+
+function _insert!(pcsc, value, key, from, to)
+    insert_pos, new_elem = insert!(pcsc.pma.array, key, value, from, to, pcsc.semaphores)
+    if new_elem
+        pcsc.pma.nb_elements += 1
+        win_start, win_end, nbcells = _look_for_rebalance!(pcsc.pma, insert_pos)
+        _even_rebalance!(pcsc, win_start, win_end, nbcells)
+    end
+    return
+end
+
+function _delete!(pcsc, key, from, to)
+    set_pos, deleted_elem = delete!(pcsc.pma.array, key, from, to)
+    if deleted_elem
+        pcsc.pma.nb_elements -= 1
+        win_start, win_end, nbcells = _look_for_rebalance!(pcsc.pma, set_pos)
+        _even_rebalance!(pcsc, win_start, win_end, nbcells)
+    end
+    return
 end
 
 function Base.setindex!(mpcsc::MappedPackedCSC{L,K,T}, value::T, row::L, col::K) where {L,K,T}
