@@ -3,7 +3,7 @@ include("sparsematrix.jl")
 
 function functional_tests()
     # Dynamic Sparse Vector (pma)
-    @testset "dynsparsevector - func - simple use" begin
+    @testset "dynsparsevector (PackedMemoryArray) - func - simple use" begin
         dynsparsevec_simple_use()
     end
     @testset "Insertions & finds in dyn sparse vector" begin
@@ -11,9 +11,10 @@ function functional_tests()
     end
 
     # PackedCSC
-    @testset "Creation of a PackedCSC matrix" begin
-        pcsc_creation()
+    @testset "PackedCSC - func - simple use" begin
+        pcsc_simple_use()
     end
+    
     @testset "Insertions & finds in PackedCSC matrix" begin
         pcsc_insertions_and_gets()
     end

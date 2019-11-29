@@ -89,3 +89,24 @@ function check_semaphores(
     @test nb_off_semaphores == nb_sem_in_array
     return
 end
+
+function check_key_order(
+    array::Vector{Union{Nothing, Tuple{K,T}}}, semaphores
+) where {K,T}
+    sem_key = DynamicSparseArrays.semaphore_key(K)
+    pred_key = nothing
+    for cell in array
+        if cell != nothing
+            key, value = cell
+            if key != sem_key
+                if pred_key !== nothing
+                    @test pred_key < key
+                    pred_key = key
+                end
+            else
+                pred_key = nothing
+            end
+        end
+    end
+    return
+end

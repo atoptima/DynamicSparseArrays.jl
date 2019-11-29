@@ -179,6 +179,7 @@ end
 # Builder (exported)
 function _prepare_keys_vals!(keys::Vector{K}, values::Vector{T}, combine::Function) where {K,T}
     @assert length(keys) == length(values)
+    length(keys) == 0 && return
     p = sortperm(keys)
     permute!(keys, p)
     permute!(values, p)

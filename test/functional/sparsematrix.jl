@@ -12,51 +12,34 @@ function pcsc_factory(nbpartitions, prob_empty_partition::Float64 = 0.0)
     return partitions
 end
 
-function pcsc_creation()
+function pcsc_simple_use()
     keys = [[1, 2, 3], [2, 6, 7], [1, 6, 8]]
     values = [[2, 3, 4], [2, 4, 5], [3, 5, 7]]
-    ppma = PackedCSC(keys, values)
-    @test nbpartitions(ppma) == 3
 
-    for (id, pos) in enumerate(ppma.semaphores)
-        (key, sem_nb) = ppma.pma.array[pos]
-        @test key == DynamicSparseArrays.semaphore_key(Int)
-        @test sem_nb == id
-    end
+    # Test A.1 : Create the matrix, check semaphores, & check key order
+    pcsc1 = PackedCSC(keys, values)
+    @test nbpartitions(pcsc1) == 3
+    check_semaphores(pcsc1.pma.array, pcsc1.semaphores)
+    check_key_order(pcsc1.pma.array, pcsc1.semaphores)
+    @test ndims(pcsc1) == 2
+    @test length(pcsc1) == 9 # nb of non-zero entries
+    @test size(pcsc1)[1] > length(pcsc1)
+    @test size(pcsc1)[2] == 3
+    
+    # Test A.2 : Check value of entries
+    matrix = [2 0 3; 3 2 0; 4 0 0; 0 0 0; 0 0 0; 0 4 5; 0 5 0; 0 0 7]
+    #@test pcsc1 == matrix # TODO
 
-    keys = [[1, 2, 3, 1, 2], [2, 6, 7, 7, 5], [1, 6, 8, 2, 1]]
-    values = [[2, 3, 4, 1, 1], [2, 4, 5, 1, 1], [3, 5, 7, 1, 1]]
-    ppma = PackedCSC(keys, values)
-    @test nbpartitions(ppma) == 3
+    # Test B.1
+    keys = [[1, 2, 3, 1, 2], Int[], [2, 6, 7, 7, 5], [1, 6, 8, 2, 1]]
+    values = [[2, 3, 4, 1, 1], Int[], [2, 4, 5, 1, 1], [3, 5, 7, 1, 1]]
+    pcsc2 = PackedCSC(keys, values)
+    @test nbpartitions(pcsc2) == 4
+    check_semaphores(pcsc2.pma.array, pcsc2.semaphores)
+    check_key_order(pcsc2.pma.array, pcsc2.semaphores)
+    @test length(pcsc2) == 11
+    @test size(pcsc2)[2] == 4
 
-    for (id, pos) in enumerate(ppma.semaphores)
-        (key, sem_nb) = ppma.pma.array[pos]
-        @test key == DynamicSparseArrays.semaphore_key(Int)
-        @test sem_nb == id
-    end
-
-    # Check if order is respected inside each partition
-    prev_key = -1 # key of semaphore is 0
-    sum_val = 0
-    for couple in ppma.pma.array
-        if couple != nothing
-            (key, value) = couple
-            if key != 0
-                @test prev_key < key
-                sum_val += value
-            end
-            prev_key = key
-        end
-    end
-    @test sum_val == sum(sum(values))
-
-    for i in 1:100
-        ppma[i, 1] = 10
-    end
-
-    for i in 1:100
-        @test ppma[i, 1] == 10
-    end
     return
 end
 

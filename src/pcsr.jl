@@ -1,3 +1,6 @@
+"""
+Matrix whose columns are indexed by an integer.
+"""
 mutable struct PackedCSC{K,T<:Real}
     nb_partitions::Int
     semaphores::Vector{Union{Nothing, Int}} # pos of the semaphore in the pma
@@ -5,6 +8,9 @@ mutable struct PackedCSC{K,T<:Real}
     pma::PackedMemoryArray{K,T,NoPredictor}
 end
 
+"""
+Matrix
+"""
 mutable struct MappedPackedCSC{K,L,T<:Real}
     col_keys::Vector{Union{Nothing, L}} # the position of the key is the position of the column
     pcsc::PackedCSC{K,T}
@@ -106,9 +112,9 @@ function deletecolumn!(mpcsc::MappedPackedCSC{K,L,T}, col::K) where {K,L,T}
     return true
 end
 
-Base.ndims(pma::PackedCSC) = 2
-Base.size(pma::PackedCSC) = (10000, 100000)
-# Base.length(pma::PackedCSC) = pma.nb_elements
+Base.ndims(matrix::PackedCSC) = 2
+Base.length(matrix::PackedCSC) = length(matrix.pma) - matrix.nb_partitions
+Base.size(matrix::PackedCSC) = (length(matrix.pma.array), matrix.nb_partitions)
 
 
 # getindex
