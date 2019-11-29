@@ -124,7 +124,7 @@ function _shrink!(pma::PackedMemoryArray)
 end
 
 Base.ndims(pma::PackedMemoryArray) = 1
-Base.size(pma::PackedMemoryArray) = (pma.nb_elements,)
+Base.size(pma::PackedMemoryArray) = (length(pma.array),)
 Base.length(pma::PackedMemoryArray) = pma.nb_elements
 
 Base.iterate(pma::PackedMemoryArray) = _iterate(pma, iterate(pma.array))
