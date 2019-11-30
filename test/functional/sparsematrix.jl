@@ -34,7 +34,7 @@ function pcsc_simple_use()
         @test matrix[i,j] == pcsc1[i,j]
     end
 
-    # Test B.3 : set some entries
+    # Test A.3 : set some entries
     matrix[1,1] = 4
     pcsc1[1,1] = 4  # set
     matrix[1,2] += 3
@@ -52,6 +52,24 @@ function pcsc_simple_use()
         @test matrix[i,j] == pcsc1[i,j]
     end
 
+    # Test A.4 : retrieve columns & rows
+    row = pcsc1[2, :]
+    row_from_matrix = matrix[2, :]
+    
+    @test length(row) == 2
+    for i in 1:length(row_from_matrix) # TODO : good test
+        @test row[i] == row_from_matrix[i]
+    end
+
+    column = pcsc1[:, 2]
+    col_from_matrix = pcsc1[:, 2]
+
+    @test length(column) == 5
+    for i in 1:length(col_from_matrix)
+        @test column[i] == col_from_matrix[i]
+    end
+    
+    # Test A.5 : add columns
     pcsc1[10,5] = 9 # new element and new column
     @test length(pcsc1) == 11
     @test size(pcsc1)[2] == 5 # 2 new partitions
@@ -60,6 +78,11 @@ function pcsc_simple_use()
     @test length(pcsc1) == 12
     check_semaphores(pcsc1.pma.array, pcsc1.semaphores)
     check_key_order(pcsc1.pma.array, pcsc1.semaphores)
+
+
+    # Test A.6 : delete columns
+
+
 
     # Test B.1
     keys = [[1, 2, 3, 1, 2], Int[], [2, 6, 7, 7, 5], [1, 6, 8, 2, 1]]

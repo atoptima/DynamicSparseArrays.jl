@@ -39,7 +39,7 @@ function PackedCSC(
         push!(pcsc_keys, nkeys...)
         push!(pcsc_values, nvalues...)
     end
-    pma = _pma(pcsc_keys, pcsc_values)
+    pma = PackedMemoryArray(pcsc_keys, pcsc_values, sort = false)
     semaphores = Vector{Union{Int, Nothing}}(zeros(Int, nb_semaphores))
     for (pos, pair) in enumerate(pma.array)
         if pair != nothing && pair[1] == semaphore_key(L)
@@ -85,7 +85,8 @@ function addpartition!(pcsc::PackedCSC{K,T}) where {K,T}
     return
 end
 
-function _position_of_partition_end(pcsc, partition)
+_pos_of_partition_start(pcsc, partition) = pcsc.semaphores[partition]
+function _pos_of_partition_end(pcsc, partition)
     pos = length(pcsc.pma.array) 
     next_partition = _nextnonemptypos(pcsc.semaphores, partition)
     if next_partition != 0
@@ -98,8 +99,8 @@ function deletepartition!(pcsc::PackedCSC{K,T}, partition::Int) where {K,T}
     len = length(pcsc.semaphores)
     1 <= partition <= len || throw(BoundsError("cannot access $(len)-elements partition at index [$(partition)]."))
     pcsc.nb_partitions -= 1
-    sem_pos = pcsc.semaphores[partition]
-    partition_end_pos = _position_of_partition_end(pcsc, partition)
+    sem_pos = _pos_of_partition_start(pcsc, partition)
+    partition_end_pos = _pos_of_partition_end(pcsc, partition)
     # Delete semaphore & content of the column
     pos, rebalance = purge!(pcsc.pma.array, sem_pos, partition_end_pos)
     if rebalance
@@ -125,8 +126,8 @@ Base.size(matrix::PackedCSC) = (length(matrix.pma.array), matrix.nb_partitions)
 
 # getindex
 function find(pcsc::PackedCSC, partition, key)
-    from = pcsc.semaphores[partition]
-    to = _position_of_partition_end(pcsc, partition)
+    from = _pos_of_partition_start(pcsc, partition)
+    to = _pos_of_partition_end(pcsc, partition)
     return find(pcsc.pma.array, key, from, to)
 end
 
@@ -134,6 +135,31 @@ function Base.getindex(pcsc::PackedCSC{K,T}, key::K, partition::Int) where {K,T}
     fpos, fpair = find(pcsc, partition, key)
     fpair != nothing && fpair[1] == key && return fpair[2]
     return zero(T)
+end
+
+function Base.getindex(pcsc::PackedCSC{K,T}, key::K, ::Colon) where {K,T}
+    elements = Vector{Tuple{K,T}}()
+    partition_id = 0
+    sem_key = semaphore_key(K)
+    for (k, v) in pcsc.pma
+        if k == sem_key
+            partition_id = Int(v)
+        end
+        if k == key
+            push!(elements, (partition_id, v))
+        end
+    end
+    return PackedMemoryArray(elements)
+end
+
+function Base.getindex(pcsc::PackedCSC{K,T}, ::Colon, partition::Int) where {K,T}
+    elements = Vector{Tuple{K,T}}()
+    partition_start = _pos_of_partition_start(pcsc, partition) + 1
+    partition_end = _pos_of_partition_end(pcsc, partition)
+    for elem in pcsc.pma.array[partition_start:partition_end]
+        elem !== nothing && push!(elements, elem)
+    end
+    return PackedMemoryArray(elements)
 end
 
 function Base.getindex(mpcsc::MappedPackedCSC{L,K,T}, row::L, col::K) where {L,K,T}
@@ -151,7 +177,7 @@ function Base.setindex!(pcsc::PackedCSC{K,T}, value, key::K, partition::Int) whe
         _add_partitions!(pcsc, partition)
     end
     from = pcsc.semaphores[partition]
-    to = _position_of_partition_end(pcsc, partition)
+    to = _pos_of_partition_end(pcsc, partition)
     if value != zero(T)
         _insert!(pcsc, value, key, from, to)
     else

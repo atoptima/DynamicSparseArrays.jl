@@ -24,20 +24,28 @@ mutable struct PackedMemoryArray{K,T,P <: AbstractPredictor} <: AbstractArray{T,
 end
 
 # Packed Memory Array constructor
-function _pma(keys::Vector{K}, values::Vector{T}) where {K,T}
-    t_h, t_0, p_h, p_0 = 0.7, 0.92, 0.3, 0.08
+function _array(kv::Vector{Tuple{K,T}}, capacity) where {K,T}
+    array = Elements{K,T}(kv)
+    resize!(array, capacity)
+    return array
+end
+
+function _array(keys::Vector{K}, values::Vector{T}, capacity) where {K,T}
+    array = Elements{K,T}(nothing, capacity)
     nb_elements = length(values)
-    capacity = 2^ceil(Int, log2(ceil(nb_elements/t_h)))
+    for i in 1:nb_elements
+        array[i] = (keys[i], values[i])
+    end
+    return array
+end
+
+function _pma(array::Elements{K,T}, nb_elements, t_h, t_0, p_h, p_0) where {K,T}
+    capacity = length(array)
     nb_segs = Int(2^ceil(Int, log2(capacity/log2(capacity))))
     seg_capacity = Int(capacity / nb_segs)
     height = Int(log2(nb_segs))
     t_d = (t_h - t_0) / height
     p_d = (p_h - p_0) / height 
-    array = Elements{K,T}(nothing, capacity)
-    for i in 1:nb_elements
-        array[i] = (keys[i], values[i])
-    end
-    max_density = (seg_capacity - 1) / seg_capacity
     pma = PackedMemoryArray(
         capacity, seg_capacity, nb_segs, nb_elements, 0, 0, height, t_h, 
         t_0, p_h, p_0, t_d, p_d, array, NoPredictor()
@@ -46,11 +54,27 @@ function _pma(keys::Vector{K}, values::Vector{T}) where {K,T}
     return pma
 end
 
-function PackedMemoryArray(keys::Vector{K}, values::Vector{T}) where {K,T}
-    p = sortperm(keys)
-    permute!(keys, p)
-    permute!(values, p)
-    return _pma(keys, values)
+function PackedMemoryArray(kv::Vector{Tuple{K,T}}; sort = true) where {K,T}
+    t_h, t_0, p_h, p_0 = 0.7, 0.92, 0.3, 0.08
+    nb_elements = length(kv)
+    sort && sort!(kv, by = e -> e[1])
+    capacity = 2^ceil(Int, log2(ceil(nb_elements/t_h)))
+    array = _array(kv, capacity)
+    return _pma(array, nb_elements, t_h, t_0, p_h, p_0)
+end
+
+function PackedMemoryArray(keys::Vector{K}, values::Vector{T}; sort = true) where {K,T}
+    t_h, t_0, p_h, p_0 = 0.7, 0.92, 0.3, 0.08
+    length(keys) == length(values) || ArgumentError("Length keys != length values.")
+    nb_elements = length(values)
+    if sort
+        p = sortperm(keys)
+        permute!(keys, p)
+        permute!(values, p)
+    end
+    capacity = 2^ceil(Int, log2(ceil(nb_elements/t_h)))
+    array = _array(keys, values, capacity)
+    return _pma(array, nb_elements, t_h, t_0, p_h, p_0)
 end
 
 # start included, end included
