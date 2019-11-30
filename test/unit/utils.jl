@@ -87,7 +87,7 @@ function check_semaphores(
         end
     end
     @test nb_off_semaphores == nb_sem_in_array
-    return
+    return nb_off_semaphores
 end
 
 function check_key_order(

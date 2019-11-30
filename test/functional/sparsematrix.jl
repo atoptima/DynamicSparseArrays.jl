@@ -101,10 +101,15 @@ function pcsc_simple_use()
     check_semaphores(pcsc1.pma.array, pcsc1.semaphores)
     check_key_order(pcsc1.pma.array, pcsc1.semaphores)
 
-
     # Test A.7 : delete columns (deleting a column is irreversible)
-
-
+    nb_elems_in_part_2 = length(pcsc1[:,2])
+    deletepartition!(pcsc1, 2)
+    @test size(pcsc1)[2] == 4
+    @test_broken length(pcsc1) ==  12 - nb_elems_in_part_2 #TODO
+    nb_sem = check_semaphores(pcsc1.pma.array, pcsc1.semaphores)
+    @test nb_sem == 4
+    check_key_order(pcsc1.pma.array, pcsc1.semaphores)
+    
 
     # Test B.1
     keys = [[1, 2, 3, 1, 2], Int[], [2, 6, 7, 7, 5], [1, 6, 8, 2, 1]]

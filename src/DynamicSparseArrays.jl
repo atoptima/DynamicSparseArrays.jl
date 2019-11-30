@@ -2,6 +2,8 @@ module DynamicSparseArrays
 
 export dynamicsparsevec, dynamicsparse
 
+export deletepartition!, deletecolumn!
+
 # Partioned Packed Memory Array
 export PackedCSC, nbpartitions
 

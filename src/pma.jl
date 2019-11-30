@@ -91,6 +91,34 @@ function PackedMemoryArray(::Type{K}, ::Type{T}) where {K,T} # empty pma
     return _pma(array, 0, t_h, t_0, p_h, p_0)
 end
 
+function _prepare_keys_vals!(keys::Vector{K}, values::Vector{T}, combine::Function) where {K,T}
+    @assert length(keys) == length(values)
+    length(keys) == 0 && return
+    p = sortperm(keys)
+    permute!(keys, p)
+    permute!(values, p)
+    write_pos = 1
+    read_pos = 1
+    prev_id = keys[read_pos]
+    while read_pos < length(keys)
+        read_pos += 1
+        cur_id = keys[read_pos]
+        if prev_id == cur_id
+            values[write_pos] = combine(values[write_pos], values[read_pos])
+        else
+            write_pos += 1
+            if write_pos < read_pos
+                keys[write_pos] = cur_id
+                values[write_pos] = values[read_pos]
+            end
+        end
+        prev_id = cur_id
+    end
+    resize!(keys, write_pos)
+    resize!(values, write_pos)
+    return
+end
+
 function _dynamicsparsevec(I, V, combine)
     _prepare_keys_vals!(I, V, combine)
     return PackedMemoryArray(I, V)
