@@ -17,6 +17,8 @@ function unit_tests()
         test_pack_spread(497, 97)
         test_pack_spread(855, 17)
         test_pack_spread(1000000, 5961)
+
+        test_pack_spread_of_empty_array()
         
         test_pack_spread_with_semaphores(100, 10)
         test_pack_spread_with_semaphores(1000, 8)

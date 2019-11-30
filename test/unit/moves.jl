@@ -124,6 +124,13 @@ function test_pack_spread(capacity::Int, expnbempty::Int)
     return
 end
 
+function test_pack_spread_of_empty_array()
+    array = Vector{Union{Nothing, Tuple{Int,Float64}}}(nothing, 20)
+    @test DynamicSparseArrays.pack!(array, 1, length(array), 0) === nothing
+    @test DynamicSparseArrays.spread!(array, 1, length(array), 0, nothing) === nothing
+    return
+end
+
 function test_pack_spread_with_semaphores(capacity::Int, expnbempty::Int)
     array, sem, nbempty, nbcells = partitioned_array_factory(capacity, expnbempty)
 

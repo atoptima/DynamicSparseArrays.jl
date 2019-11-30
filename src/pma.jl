@@ -77,6 +77,33 @@ function PackedMemoryArray(keys::Vector{K}, values::Vector{T}; sort = true) wher
     return _pma(array, nb_elements, t_h, t_0, p_h, p_0)
 end
 
+function PackedMemoryArray(::Type{K}, ::Type{T}) where {K,T} # empty pma
+    expected_nb_elems = 20
+    t_h, t_0, p_h, p_0 = 0.7, 0.92, 0.3, 0.08
+    capacity = 2^ceil(Int, log2(ceil(expected_nb_elems/t_h)))
+    array = Elements{K,T}(nothing, capacity)
+    return _pma(array, 0, t_h, t_0, p_h, p_0)
+end
+
+function _dynamicsparsevec(I, V, combine)
+    _prepare_keys_vals!(I, V, combine)
+    return PackedMemoryArray(I, V)
+end
+
+function dynamicsparsevec(I::Vector{K}, V::Vector{T}, combine::Function) where {T,K}
+    applicable(zero, T) || 
+        throw(ArgumentError("cannot apply method zero over $(T)"))
+    length(I) == length(V) ||
+        throw(ArgumentError("keys & nonzeros vectors must have same length."))
+    if length(I) == 0
+        return PackedMemoryArray(K, T)
+    end
+    return _dynamicsparsevec(Vector(I), Vector(V), combine)
+end
+
+dynamicsparsevec(I,V) = dynamicsparsevec(I,V,+)
+
+
 # start included, end included
 function _even_rebalance!(pma::PackedMemoryArray, window_start, window_end, m)
     capacity = window_end - window_start + 1
@@ -227,23 +254,6 @@ function _prepare_keys_vals!(keys::Vector{K}, values::Vector{T}, combine::Functi
     resize!(values, write_pos)
     return
 end
-
-function _dynamicsparsevec(I, V, combine)
-    _prepare_keys_vals!(I, V, combine)
-    return PackedMemoryArray(I, V)
-end
-
-function dynamicsparsevec(I::Vector{K}, V::Vector{T}, combine::Function) where {T,K}
-    applicable(zero, T) || 
-        throw(ArgumentError("cannot apply method zero over $(T)"))
-    length(I) == length(V) ||
-        throw(ArgumentError("ids & nonzeros vectors must have same length."))
-    length(I) > 0 ||
-        throw(ArgumentError("vectors cannot be empty."))
-    return _dynamicsparsevec(Vector(I), Vector(V), combine)
-end
-
-dynamicsparsevec(I,V) = dynamicsparsevec(I,V,+)
 
 # show TODO : to be improved (issue #1)
 function Base.show(io::IO, pma::PackedMemoryArray{K,T,P}) where {K,T,P}

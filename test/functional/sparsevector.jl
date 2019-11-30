@@ -1,8 +1,12 @@
 function dynsparsevec_simple_use()
+    # Test 0 : Create an empty vector
+    vec = dynamicsparsevec(Int[], Float64[])
+    @test length(vec) == 0
+
+    # Test 1 : instantiate a dynamic sparse vector
     I = [1, 2, 5, 5, 3, 10, 1, 8, 1, 5]
     V = [1.0, 3.5, 2.1, 8.5, 2.1, 1.1, 5.0, 7.8, 1.1, 2.0]
 
-    # Test 1 : instantiate a dynamic sparse vector
     vec = dynamicsparsevec(I,V)
 
     @test repr(vec) == "16-element DynamicSparseArrays.PackedMemoryArray{Int64,Float64,DynamicSparseArrays.NoPredictor} with 6 stored entries.\n"
