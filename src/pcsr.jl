@@ -50,6 +50,8 @@ function PackedCSC(
     return PackedCSC(nb_semaphores, semaphores, pma)
 end
 
+PackedCSC(pcsc::PackedCSC) = deepcopy(pcsc)
+
 function MappedPackedCSC(
     row_keys::Vector{Vector{K}}, column_keys::Vector{L}, 
     values::Vector{Vector{T}}, combine::Function = +

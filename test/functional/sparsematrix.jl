@@ -13,10 +13,14 @@ function pcsc_factory(nbpartitions, prob_empty_partition::Float64 = 0.0)
 end
 
 function pcsc_simple_use()
+    # Test A.0 : Create an empty matrix
+    # pcsc = PackedCSC()
+    # @show length(pcsc) == 0
+
+    # Test A.1 : Create the matrix, check semaphores, & check key order
     keys = [[1, 2, 3], [2, 6, 7], [1, 6, 8]]
     values = [[2, 3, 4], [2, 4, 5], [3, 5, 7]]
 
-    # Test A.1 : Create the matrix, check semaphores, & check key order
     pcsc1 = PackedCSC(keys, values)
     @test nbpartitions(pcsc1) == 3
     check_semaphores(pcsc1.pma.array, pcsc1.semaphores)
@@ -52,7 +56,12 @@ function pcsc_simple_use()
         @test matrix[i,j] == pcsc1[i,j]
     end
 
-    # Test A.4 : retrieve columns & rows
+    # Test A.4 : make a copy of the matrix
+    pcsc3 = PackedCSC(pcsc1)
+    # @test pcsc1 == pcsc3 # TODO
+
+    # Test A.5 : retrieve columns & rows
+    # Test A.5.1 : retrieve a row
     row = pcsc1[2, :]
     row_from_matrix = matrix[2, :]
     
@@ -61,6 +70,7 @@ function pcsc_simple_use()
         @test row[i] == row_from_matrix[i]
     end
 
+    # Test A.5.2 : retrieve a column
     column = pcsc1[:, 2]
     col_from_matrix = pcsc1[:, 2]
 
@@ -68,8 +78,20 @@ function pcsc_simple_use()
     for i in 1:length(col_from_matrix)
         @test column[i] == col_from_matrix[i]
     end
-    
-    # Test A.5 : add columns
+
+    # Test A.5.3 : retrieve an empty row
+    for i in 1:3
+        pcsc3[2,i] = 0
+    end
+    @test length(pcsc3[2,:]) == 0
+
+    # Test A.5.4 : retrieve an empty column
+    for i in 1:8
+        pcsc3[i,2] = 0
+    end
+    @test length(pcsc3[:,2]) == 0
+
+    # Test A.6 : add columns
     pcsc1[10,5] = 9 # new element and new column
     @test length(pcsc1) == 11
     @test size(pcsc1)[2] == 5 # 2 new partitions
@@ -80,7 +102,7 @@ function pcsc_simple_use()
     check_key_order(pcsc1.pma.array, pcsc1.semaphores)
 
 
-    # Test A.6 : delete columns
+    # Test A.7 : delete columns (deleting a column is irreversible)
 
 
 

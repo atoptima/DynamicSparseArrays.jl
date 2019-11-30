@@ -57,6 +57,9 @@ end
 function PackedMemoryArray(kv::Vector{Tuple{K,T}}; sort = true) where {K,T}
     t_h, t_0, p_h, p_0 = 0.7, 0.92, 0.3, 0.08
     nb_elements = length(kv)
+    if nb_elements == 0
+        return PackedMemoryArray(K, T)
+    end
     sort && sort!(kv, by = e -> e[1])
     capacity = 2^ceil(Int, log2(ceil(nb_elements/t_h)))
     array = _array(kv, capacity)
@@ -67,6 +70,9 @@ function PackedMemoryArray(keys::Vector{K}, values::Vector{T}; sort = true) wher
     t_h, t_0, p_h, p_0 = 0.7, 0.92, 0.3, 0.08
     length(keys) == length(values) || ArgumentError("Length keys != length values.")
     nb_elements = length(values)
+    if nb_elements == 0
+        return PackedMemoryArray(K, T)
+    end
     if sort
         p = sortperm(keys)
         permute!(keys, p)
@@ -95,9 +101,6 @@ function dynamicsparsevec(I::Vector{K}, V::Vector{T}, combine::Function) where {
         throw(ArgumentError("cannot apply method zero over $(T)"))
     length(I) == length(V) ||
         throw(ArgumentError("keys & nonzeros vectors must have same length."))
-    if length(I) == 0
-        return PackedMemoryArray(K, T)
-    end
     return _dynamicsparsevec(Vector(I), Vector(V), combine)
 end
 
@@ -225,35 +228,6 @@ function Base.setindex!(pma::PackedMemoryArray{K,T,P}, value, key::K) where {K,T
     return
 end
 
-
-# Builder (exported)
-function _prepare_keys_vals!(keys::Vector{K}, values::Vector{T}, combine::Function) where {K,T}
-    @assert length(keys) == length(values)
-    length(keys) == 0 && return
-    p = sortperm(keys)
-    permute!(keys, p)
-    permute!(values, p)
-    write_pos = 1
-    read_pos = 1
-    prev_id = keys[read_pos]
-    while read_pos < length(keys)
-        read_pos += 1
-        cur_id = keys[read_pos]
-        if prev_id == cur_id
-            values[write_pos] = combine(values[write_pos], values[read_pos])
-        else
-            write_pos += 1
-            if write_pos < read_pos
-                keys[write_pos] = cur_id
-                values[write_pos] = values[read_pos]
-            end
-        end
-        prev_id = cur_id
-    end
-    resize!(keys, write_pos)
-    resize!(values, write_pos)
-    return
-end
 
 # show TODO : to be improved (issue #1)
 function Base.show(io::IO, pma::PackedMemoryArray{K,T,P}) where {K,T,P}
