@@ -57,6 +57,6 @@ function test_delete()
     # Test 3 : purge from pos 3 to pos 5
     output = DynamicSparseArrays.purge!(array, 3, 5)
     @test array == [nothing, (3, 10), nothing, nothing, nothing, nothing, (10, 10)]
-    @test output == (4, true)
+    @test output == (4, 2)
     return
 end

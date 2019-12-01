@@ -33,7 +33,7 @@ function pcsc_simple_use()
     # Test A.2 : Check value of entries
     matrix = [2 0 3; 3 2 0; 4 0 0; 0 0 0; 0 0 0; 0 4 5; 0 5 0; 0 0 7]
     nr, nc = size(matrix)
-    #@test pcsc1 == matrix # TODO
+    @test_broken pcsc1 == matrix # TODO
     for i in 1:nr, j in 1:nc
         @test matrix[i,j] == pcsc1[i,j]
     end
@@ -102,10 +102,11 @@ function pcsc_simple_use()
     check_key_order(pcsc1.pma.array, pcsc1.semaphores)
 
     # Test A.7 : delete columns (deleting a column is irreversible)
+    nb_elems = length(pcsc1)
     nb_elems_in_part_2 = length(pcsc1[:,2])
     deletepartition!(pcsc1, 2)
     @test size(pcsc1)[2] == 4
-    @test_broken length(pcsc1) ==  12 - nb_elems_in_part_2 #TODO
+    @test length(pcsc1) ==  nb_elems - nb_elems_in_part_2 #TODO
     nb_sem = check_semaphores(pcsc1.pma.array, pcsc1.semaphores)
     @test nb_sem == 4
     check_key_order(pcsc1.pma.array, pcsc1.semaphores)
@@ -198,7 +199,7 @@ function dynsparsematrix_simple_use()
     # Test A.2 : Check value of entries
     matrix2 = [2 0 3; 3 2 0; 4 0 0; 0 0 0; 0 0 0; 0 4 5; 0 5 0; 0 0 7]
     nr, nc = size(matrix2)
-    #@test pcsc1 == matrix # TODO
+    @test_broken matrix == matrix2
     for i in 1:nr, j in 1:nc
         @test matrix[i,j] == matrix2[i,j]
     end
@@ -216,7 +217,6 @@ function dynsparsematrix_simple_use()
     @test length(matrix) == 10
     @test size(matrix)[2] == 3
 
-    #@test pcsc1 == matrix # TODO
     for i in 1:nr, j in 1:nc
         @test matrix[i,j] == matrix2[i,j]
     end
@@ -270,14 +270,14 @@ function dynsparsematrix_simple_use()
     nb_elems_in_part_2 = length(matrix[:,2])
     deletecolumn!(matrix, 2)
     @test size(matrix)[2] == 3
-    @test_broken length(matrix) ==  11 - nb_elems_in_part_2 #TODO
+    @test length(matrix) ==  11 - nb_elems_in_part_2 #TODO
     nb_sem = check_semaphores(matrix.pcsc.pma.array, matrix.pcsc.semaphores)
     @test nb_sem == 3
     check_key_order(matrix.pcsc.pma.array, matrix.pcsc.semaphores)
 
     @test_throws ArgumentError matrix[1,2] = 1 # because column 2 has been deleted
     
-    
+
     # Test B
     I = [1, 1, 2, 4, 3, 5, 1, 3, 1, 5, 1, 5, 4]
     J = [4, 3, 3, 7, 18, 9, 3, 18, 4, 2, 3, 1, 7]

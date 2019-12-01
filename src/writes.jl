@@ -72,16 +72,22 @@ function delete!(array::Elements{K,T}, key::K) where {K,T}
 end
 
 """
-    purge!(array, from, to)
+    purge!(array, from, to, sem_key)
 
 Delete from `array` all elements between positions `from` and `to` included.
+Return middle and the number of elements deleted
 """
 function purge!(array::Elements{K,T}, from::Int, to::Int) where {K,T}
-    to < from && return (0, false)
-    to == from && _delete!(array, from)
+    to < from && return (0, 0)
+    nb_cells_deleted = 0
     for pos in from:to
-        _delete!(array, pos)
+        cell = array[pos]
+        if cell != nothing
+            key, val = cell
+            array[pos] = nothing
+            nb_cells_deleted += 1
+        end
     end
     mid = from + (to - from) ÷ 2
-    return (mid, true)
+    return (mid, nb_cells_deleted)
 end

@@ -102,11 +102,13 @@ function deletepartition!(pcsc::PackedCSC{K,T}, partition::Int) where {K,T}
     len = length(pcsc.semaphores)
     1 <= partition <= len || throw(BoundsError("cannot access $(len)-elements partition at index [$(partition)]."))
     pcsc.nb_partitions -= 1
+    sem_key = semaphore_key(K)
     sem_pos = _pos_of_partition_start(pcsc, partition)
     partition_end_pos = _pos_of_partition_end(pcsc, partition)
     # Delete semaphore & content of the column
-    pos, rebalance = purge!(pcsc.pma.array, sem_pos, partition_end_pos)
-    if rebalance
+    pos, nb_elems_rm = purge!(pcsc.pma.array, sem_pos, partition_end_pos)
+    if nb_elems_rm > 0
+        pcsc.pma.nb_elements -= nb_elems_rm
         win_start, win_end, nbcells = _look_for_rebalance!(pcsc.pma, pos)
         _even_rebalance!(pcsc, win_start, win_end, nbcells)
     end
