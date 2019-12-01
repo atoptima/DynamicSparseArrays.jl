@@ -6,7 +6,7 @@ function functional_tests()
     @testset "dynsparsevector (PackedMemoryArray) - func - simple use" begin
         dynsparsevec_simple_use()
     end
-    @testset "Insertions & finds in dyn sparse vector" begin
+    @testset "Insertions & finds in dyn sparse vector - performance" begin
         dynsparsevec_insertions_and_gets()
     end
 
@@ -14,23 +14,17 @@ function functional_tests()
     @testset "PackedCSC - func - simple use" begin
         pcsc_simple_use()
     end
-    
-    @testset "Insertions & finds in PackedCSC matrix" begin
+
+    @testset "Insertions & finds in PackedCSC matrix - performance" begin
         pcsc_insertions_and_gets()
-    end
-    @testset "Deletions in PackedCSC matrix" begin
-        pcsc_deletions()
     end
 
     # Dynamic Sparse Matrix (MappedPackedCSC)
-    @testset "Instantiation (with multiple elements) in MappedPackedCSC matrix" begin
-        dynsparsematrix_instantiation()
+    @testset "dynsparsematrix - func - simple use" begin
+        dynsparsematrix_simple_use()
     end
-    @testset "Insertions & finds in MappedPackedCSC matrix" begin
+    @testset "Insertions & finds in MappedPackedCSC matrix - performance" begin
         dynsparsematrix_insertions_and_gets()
-    end
-    @testset "Deletions in MappedPackedCSC matrix" begin
-        dynsparsematrix_deletions()
     end
     return
 end

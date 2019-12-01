@@ -51,6 +51,7 @@ function PackedCSC(
 end
 
 PackedCSC(pcsc::PackedCSC) = deepcopy(pcsc)
+MappedPackedCSC(mpcsc::MappedPackedCSC) = deepcopy(mpcsc)
 
 function MappedPackedCSC(
     row_keys::Vector{Vector{K}}, column_keys::Vector{L}, 
@@ -125,6 +126,10 @@ Base.ndims(matrix::PackedCSC) = 2
 Base.length(matrix::PackedCSC) = length(matrix.pma) - matrix.nb_partitions
 Base.size(matrix::PackedCSC) = (length(matrix.pma.array), matrix.nb_partitions)
 
+Base.ndims(matrix::MappedPackedCSC) = ndims(matrix.pcsc)
+Base.length(matrix::MappedPackedCSC) = length(matrix.pcsc)
+Base.size(matrix::MappedPackedCSC) = size(matrix.pcsc)
+
 
 # getindex
 function find(pcsc::PackedCSC, partition, key)
@@ -172,6 +177,29 @@ function Base.getindex(mpcsc::MappedPackedCSC{L,K,T}, row::L, col::K) where {L,K
     return mpcsc.pcsc[row, col_pos]
 end
 
+function Base.getindex(mpcsc::MappedPackedCSC{L,K,T}, row::L, ::Colon) where {L,K,T}
+    elements = Vector{Tuple{K,T}}()
+    partition_id = 0
+    sem_key = semaphore_key(L)
+    for (k, v) in mpcsc.pcsc.pma
+        if k == sem_key
+            partition_id = Int(v)
+        end
+        if k == row
+            push!(elements, (mpcsc.col_keys[partition_id], v))
+        end
+    end
+    return PackedMemoryArray(elements)
+end
+
+function Base.getindex(mpcsc::MappedPackedCSC{L,K,T}, ::Colon, col::K) where {L,K,T}
+    col_pos, col_key = find(mpcsc.col_keys, col)
+    if col_key != col # The column does not exist
+        return PackedMemoryArray(L,T) # Empty one
+    end
+    return mpcsc.pcsc[:, col_pos] 
+end
+
 
 # setindex 
 function Base.setindex!(pcsc::PackedCSC{K,T}, value, key::K, partition::Int) where {K,T}
@@ -179,6 +207,7 @@ function Base.setindex!(pcsc::PackedCSC{K,T}, value, key::K, partition::Int) whe
         _add_partitions!(pcsc, partition)
     end
     from = pcsc.semaphores[partition]
+    from == nothing && error("The partition has been deleted.")
     to = _pos_of_partition_end(pcsc, partition)
     if value != zero(T)
         _insert!(pcsc, value, key, from, to)
