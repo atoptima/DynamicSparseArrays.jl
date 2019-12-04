@@ -29,7 +29,13 @@ using Coluna
 
 ## Contents
 
-todo 
+```@contents
+Pages = [
+    "man/matrix.md",
+    "man/vector.md"
+]
+Depth = 1
+```
 
 ---
 

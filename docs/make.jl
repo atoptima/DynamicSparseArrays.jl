@@ -7,7 +7,9 @@ makedocs(
         prettyurls = get(ENV, "CI", nothing) == "true",
     ),
     pages    = Any[
-        "Introduction" => "index.md"
+        "Introduction" => "index.md",
+        "Sparse Vector" => "vector.md",
+        "Sparse Matrix" => "matrix.md"
         #"Home"   => "index.md",
         #"Installation"   => "installation.md",
         #"Quick start"   => "start.md"
