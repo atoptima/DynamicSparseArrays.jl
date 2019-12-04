@@ -1,4 +1,6 @@
 # DynamicSparseArrays.jl
+
+[![Documentation](https://img.shields.io/badge/docs-dev-blue.svg)](https://atoptima.github.io/DynamicSparseArrays.jl/dev/)
 [![Build Status](https://travis-ci.org/atoptima/DynamicSparseArrays.jl.svg?branch=master)](https://travis-ci.org/atoptima/DynamicSparseArrays.jl)
 [![codecov](https://codecov.io/gh/atoptima/DynamicSparseArrays.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/atoptima/DynamicSparseArrays.jl)
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
