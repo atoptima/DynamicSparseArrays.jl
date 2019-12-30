@@ -1,11 +1,13 @@
 module DynamicSparseArrays
 
-export dynamicsparsevec, dynamicsparse
-
-export deletepartition!, deletecolumn!
-
-# Partioned Packed Memory Array
-export PackedCSC, MappedPackedCSC, nbpartitions
+export PackedMemoryArray,
+       PackedCSC, 
+       MappedPackedCSC,
+       dynamicsparsevec,
+       dynamicsparse,
+       nbpartitions,
+       deletepartition!,
+       deletecolumn!
 
 const Elements{K,T} = Vector{Union{Nothing,Tuple{K,T}}}
 
