@@ -62,6 +62,39 @@ function dynsparsevec_simple_use()
     return
 end
 
+function fill(vec, kv)
+    n = 0
+    for (k, v) in kv
+        vec[k] = v
+        n += 1
+        @test vec.nb_elements == n
+    end
+    return
+end
+
+function empty(vec, kv)
+    n = length(kv)
+    for (k, v) in kv
+        vec[k] = 0.0
+        n -= 1
+        @test vec.nb_elements == n
+    end
+    return
+end
+
+function dynsparsevec_fill_empty()
+    # Start with an empty sparse vector
+    vec = dynamicsparsevec(Int[], Float64[])
+    for n in [20, 100, 1000, 10000, 100000]
+        kv = Dict{Int, Float64}(
+            rand(rng, 1:10000000000) => rand(rng, 1:0.1:10000) for i in 1:n
+        )
+        fill(vec, kv)
+        empty(vec, kv)
+    end
+    return
+end
+
 function dynsparsevec_insertions_and_gets()
     kv1 = Dict{Int, Float64}(
         rand(rng, 1:10000000000) => rand(rng, 1:0.1:10000) for i in 1:1000000

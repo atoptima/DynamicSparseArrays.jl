@@ -5,6 +5,7 @@ function functional_tests()
     # Dynamic Sparse Vector (pma)
     @testset "dynsparsevector (PackedMemoryArray) - func - simple use" begin
         dynsparsevec_simple_use()
+        dynsparsevec_fill_empty()
     end
     @testset "Insertions & finds in dyn sparse vector - performance" begin
         dynsparsevec_insertions_and_gets()

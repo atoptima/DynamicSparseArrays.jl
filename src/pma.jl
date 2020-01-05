@@ -84,7 +84,7 @@ function PackedMemoryArray(keys::Vector{K}, values::Vector{T}; sort = true) wher
 end
 
 function PackedMemoryArray(::Type{K}, ::Type{T}) where {K,T} # empty pma
-    expected_nb_elems = 20
+    expected_nb_elems = 100
     t_h, t_0, p_h, p_0 = 0.7, 0.92, 0.3, 0.08
     capacity = 2^ceil(Int, log2(ceil(expected_nb_elems/t_h)))
     array = Elements{K,T}(nothing, capacity)
@@ -177,7 +177,7 @@ function _look_for_rebalance!(pma::PackedMemoryArray, pos::Int)
     if density > t 
         _extend!(pma)
     end
-    if density < p
+    if density < p && pma.height > 1
         # We must pack before shrinking otherwise we loose data
         pack!(pma.array, 1, length(pma.array)/2, nb_cells)
         _shrink!(pma)
