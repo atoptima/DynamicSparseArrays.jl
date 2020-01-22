@@ -301,6 +301,31 @@ function dynsparsematrix_simple_use()
     @test matrix[5,2] == 1
     @test matrix[5,1] == 3
     @test matrix[2,3] == 10
+
+    # Test C (row & column keys with different type to test methods signatures)
+    I = [1, 1, 2, 4, 1, 2, 4, 5, 5, 2]
+    J = ['a', 'c', 'c', 'a', 'd', 'a', 'e', 'e', 'c', 'd']
+    V = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    matrix = dynamicsparse(I,J,V)
+    @test matrix[1, 'a'] == 1
+    @test matrix[1, 'c'] == 2
+    @test matrix[2, 'c'] == 3
+    @test matrix[4, 'a'] == 4
+    @test matrix[1, 'd'] == 5
+    @test matrix[2, 'a'] == 6
+    @test matrix[4, 'e'] == 7
+    @test matrix[5, 'e'] == 8
+    @test matrix[5, 'c'] == 9
+    @test matrix[2, 'd'] == 10
+
+    # add new column
+    matrix[2, 'b'] = 11
+    @test matrix[2, 'b'] == 11
+
+    # delete column
+    deletecolumn!(matrix, 'a')
+    @test matrix[1, 'a'] == 0
+    @test matrix[2, 'a'] == 0
     return
 end
 
