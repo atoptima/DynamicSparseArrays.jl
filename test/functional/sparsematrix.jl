@@ -261,22 +261,32 @@ function dynsparsematrix_simple_use()
     @test length(matrix) == 11
     @test size(matrix)[2] == 4 # 1 new partition
 
-    @test_throws ArgumentError matrix[1,4] = 2 # Cannot create column 4 because the last created is 5
+    matrix[1,-1] = 1 # add column at the very beginning
+    matrix[1,4] = 2 # We can create column 4 even if the last created is 5
+    matrix[3,4] = 5
+    @test matrix[1,4] == 2
+    @test matrix[3,4] == 5
+    @test matrix[1,-1] == 1
+
+    @test size(matrix)[2] == 6 # 2 new partitions
 
     check_semaphores(matrix.pcsc.pma.array, matrix.pcsc.semaphores)
     check_key_order(matrix.pcsc.pma.array, matrix.pcsc.semaphores)
 
-    # Test A.7 : delete columns (deleting a column is irreversible)
+    # Test A.7 : delete columns (and recreate the column)
     nb_elems_in_part_2 = length(matrix[:,2])
     deletecolumn!(matrix, 2)
-    @test size(matrix)[2] == 3
-    @test length(matrix) ==  11 - nb_elems_in_part_2 #TODO
+    @test size(matrix)[2] == 5
+    @test length(matrix) ==  14 - nb_elems_in_part_2 #TODO
     nb_sem = check_semaphores(matrix.pcsc.pma.array, matrix.pcsc.semaphores)
-    @test nb_sem == 3
+    @test nb_sem == 5
     check_key_order(matrix.pcsc.pma.array, matrix.pcsc.semaphores)
 
-    @test_throws ArgumentError matrix[1,2] = 1 # because column 2 has been deleted
-    
+    matrix[1,2] = 1
+    @test matrix[1,2] == 1
+    nb_sem = check_semaphores(matrix.pcsc.pma.array, matrix.pcsc.semaphores)
+    @test nb_sem == 6
+    check_key_order(matrix.pcsc.pma.array, matrix.pcsc.semaphores)
 
     # Test B
     I = [1, 1, 2, 4, 3, 5, 1, 3, 1, 5, 1, 5, 4]
@@ -302,13 +312,10 @@ function dynsparsematrix_insertions_and_gets()
     # Test 1 : Add value in an empty row but non-empty column
     matrix[2,7] = 8
     @test matrix[2,7] == 8
-    # Test 2 : Add value in a non-empty row but empty column, should not work
-    # because the column is not registered and its id (2) is less than the last
-    # id (18).
-    @test_throws ArgumentError matrix[1,2] = 21
-    @test matrix[1,2] == 0 # because the column does not exist
-    # Test 3 : Add value in a non-empty row but empty column,
-    # works because 33 > 18
+    # Test 2 : Add value in a non-empty row but empty column
+    matrix[1,2] = 21
+    @test matrix[1,2] == 21 # because the column does not exist
+    # Test 3 : Add value in a non-empty row but empty column (at the end)
     matrix[10,33] = 21
     @test matrix[10,33] == 21
     # Test 4 : Add value in empty column and empty row

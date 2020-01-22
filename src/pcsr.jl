@@ -88,6 +88,57 @@ function addpartition!(pcsc::PackedCSC{K,T}) where {K,T}
     return
 end
 
+function addpartition!(pcsc::PackedCSC{K,T}, prev_sem_id::Int) where {K,T}
+    sem_key = semaphore_key(K)
+    nb_semaphores = length(pcsc.semaphores)
+    sem_pos = 0
+    if pcsc.semaphores[prev_sem_id + 1] === nothing
+        next_sem_id = _nextnonemptypos(pcsc.semaphores, prev_sem_id + 1)
+        sem_pos = pcsc.semaphores[next_sem_id] - 1 #insert the new semaphore in the pma.array just before the next one
+    else 
+        sem_pos = pcsc.semaphores[prev_sem_id + 1] - 1 #insert the new semaphore just before the next one
+        resize!(pcsc.semaphores, nb_semaphores + 1) # create room for the position of the new semaphore
+        for i in nb_semaphores:-1:(prev_sem_id+1)
+            moved_sem_pos = pcsc.semaphores[i]
+            pcsc.semaphores[i+1] = pcsc.semaphores[i]
+            pcsc.pma.array[moved_sem_pos] = (sem_key, T(i+1))
+        end
+    end
+    pcsc.nb_partitions += 1
+    sem_val = T(prev_sem_id+1)
+    insert_pos, new_elem = _insert!(pcsc.pma.array, sem_key, sem_val, sem_pos, pcsc.semaphores)
+    pcsc.semaphores[prev_sem_id+1] = insert_pos
+    if new_elem
+        pcsc.pma.nb_elements += 1
+        win_start, win_end, nbcells = _look_for_rebalance!(pcsc.pma, insert_pos)
+        _even_rebalance!(pcsc, win_start, win_end, nbcells)
+    end
+    return
+end
+
+function addcolumn!(mpcsc::MappedPackedCSC{K,L,T}, col::L, prev_col_pos::Int) where {K,L,T}
+    col_pos = 0
+    if (prev_col_pos == length(mpcsc.col_keys)) # we add the partition and the semaphore at the end
+        push!(mpcsc.col_keys, col)
+        addpartition!(mpcsc.pcsc)
+        col_pos = length(mpcsc.col_keys)
+    else
+        if mpcsc.col_keys[prev_col_pos+1] === nothing
+            mpcsc.col_keys[prev_col_pos+1] = col
+        else
+            nbcolkeys = length(mpcsc.col_keys)
+            resize!(mpcsc.col_keys, nbcolkeys + 1)
+            for i in nbcolkeys:-1:(prev_col_pos+1)
+                mpcsc.col_keys[i+1] = mpcsc.col_keys[i]
+            end
+            mpcsc.col_keys[prev_col_pos+1] = col
+        end
+        addpartition!(mpcsc.pcsc, prev_col_pos)
+        col_pos = prev_col_pos+1
+    end
+    return col_pos
+end
+
 _pos_of_partition_start(pcsc, partition) = pcsc.semaphores[partition]
 function _pos_of_partition_end(pcsc, partition)
     pos = length(pcsc.pma.array) 
@@ -116,7 +167,7 @@ function deletepartition!(pcsc::PackedCSC{K,T}, partition::Int) where {K,T}
     return
 end
 
-function deletecolumn!(mpcsc::MappedPackedCSC{K,L,T}, col::K) where {K,L,T}
+function deletecolumn!(mpcsc::MappedPackedCSC{K,L,T}, col::L) where {K,L,T}
     col_pos, col_key = find(mpcsc.col_keys, col)
     col_key != col && throws(ArgumentError("column $(col) does not exist."))
     mpcsc.col_keys[col_pos] = nothing
@@ -251,11 +302,7 @@ end
 function Base.setindex!(mpcsc::MappedPackedCSC{L,K,T}, value::T, row::L, col::K) where {L,K,T}
     col_pos, col_key = find(mpcsc.col_keys, col)
     if col_key != col
-        last_col = mpcsc.col_keys[end]
-        col > last_col || throw(ArgumentError("New column must have id greater than last column id; got id $(col), last column id is $(last_col)."))
-        push!(mpcsc.col_keys, col)
-        addpartition!(mpcsc.pcsc)
-        col_pos = length(mpcsc.col_keys) 
+        col_pos = addcolumn!(mpcsc, col, col_pos)
     end
     return setindex!(mpcsc.pcsc, value, row, col_pos)
 end
