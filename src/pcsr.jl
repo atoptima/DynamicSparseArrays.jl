@@ -50,6 +50,11 @@ function PackedCSC(
     return PackedCSC(nb_semaphores, semaphores, pma)
 end
 
+function PackedCSC(::Type{K}, ::Type{T}) where {K,T}
+    pma = PackedMemoryArray(K, T)
+    return PackedCSC(0, Vector{Union{Int, Nothing}}(), pma)
+end
+
 PackedCSC(pcsc::PackedCSC) = deepcopy(pcsc)
 MappedPackedCSC(mpcsc::MappedPackedCSC) = deepcopy(mpcsc)
 
@@ -59,6 +64,12 @@ function MappedPackedCSC(
 ) where {K,L,T <: Real}
     pcsc = PackedCSC(row_keys, values, combine)
     col_keys = Vector{Union{Nothing,L}}(column_keys)
+    return MappedPackedCSC(col_keys, pcsc)
+end
+
+function MappedPackedCSC(::Type{K}, ::Type{L}, ::Type{T}) where {K,L,T}
+    pcsc = PackedCSC(K, T)
+    col_keys = Vector{Union{Nothing, L}}()
     return MappedPackedCSC(col_keys, pcsc)
 end
 
@@ -386,7 +397,7 @@ function dynamicsparse(
         throw(ArgumentError("rows, columns, & nonzeros do not have same length."))
     length(I) > 0 ||
         throw(ArgumentError("vectors cannot be empty.")) 
-    applicable(<, J[1], J[1]) ||
+    applicable(<, J, J) ||
         throw(ArgumentError("set of column keys must be totally ordered (define method Base.:< for type $L)."))
     return _dynamicsparse(
         Vector(I), Vector(J), Vector(V), combine, always_use_map
@@ -394,6 +405,10 @@ function dynamicsparse(
 end
 
 dynamicsparse(I,J,V) = dynamicsparse(I, J, V, +, true) 
+
+function dynamicsparse(::Type{K}, ::Type{L}, ::Type{T}) where {K,L,T}
+    return MappedPackedCSC(K,L,T)
+end
 
 # Show
 # TODO

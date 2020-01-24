@@ -14,8 +14,8 @@ end
 
 function pcsc_simple_use()
     # Test A.0 : Create an empty matrix
-    # pcsc = PackedCSC()
-    # @show length(pcsc) == 0
+    #pcsc = PackedCSC(Int[], Float64[])
+    #@show length(pcsc) == 0
 
     # Test A.1 : Create the matrix, check semaphores, & check key order
     keys = [[1, 2, 3], [2, 6, 7], [1, 6, 8]]
@@ -183,8 +183,18 @@ function dynsparsematrix_factory(nbrows, nbcols, density::Float64 = 0.05)
 end
 
 function dynsparsematrix_simple_use()
-    # Test A
+    # Test A.0 : create an empty matrix
+    matrix = dynamicsparse(Int, Int, Float64)
+    @test length(matrix) == 0
+    I,J,V = dynsparsematrix_factory(1000, 1000, 0.2)
+    for k in 1:length(I)
+        matrix[I[k], J[k]] = V[k]
+    end
+    for k in 1:length(I)
+        @test matrix[I[k], J[k]] == V[k]
+    end
 
+    # Test A
     J = [1, 1, 1, 2, 2, 2, 3, 3, 3]
     I = [1, 2, 3, 2, 6, 7, 1, 6, 8]
     V = [2, 3, 4, 2, 4, 5, 3, 5, 7]
