@@ -83,8 +83,7 @@ function PackedMemoryArray(keys::Vector{K}, values::Vector{T}; sort = true) wher
     return _pma(array, nb_elements, t_h, t_0, p_h, p_0)
 end
 
-function PackedMemoryArray(::Type{K}, ::Type{T}) where {K,T} # empty pma
-    expected_nb_elems = 100
+function PackedMemoryArray(::Type{K}, ::Type{T}; expected_nb_elems = 100) where {K,T} # empty pma
     t_h, t_0, p_h, p_0 = 0.7, 0.92, 0.3, 0.08
     capacity = 2^ceil(Int, log2(ceil(expected_nb_elems/t_h)))
     array = Elements{K,T}(nothing, capacity)
