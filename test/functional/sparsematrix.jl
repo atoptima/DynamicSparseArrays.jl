@@ -1,17 +1,3 @@
-function pcsc_factory(nbpartitions, prob_empty_partition::Float64 = 0.0)
-    partitions = Vector{Dict{Int, Float64}}()
-    for p in 1:nbpartitions
-        if rand(rng, 0:0.001:1) >= prob_empty_partition
-            push!(partitions, Dict{Int, Float64}( 
-                rand(rng, 1:10000) => rand(rng, 1:0.1:100) for i in 10:rand(rng, 20:1000)
-            ))
-        else
-            push!(partition, Dict{Int, Float64}())
-        end
-    end
-    return partitions
-end
-
 function pcsc_simple_use()
     # Test A.0 : Create an empty matrix
     #pcsc = PackedCSC(Int[], Float64[])
@@ -168,19 +154,6 @@ function pcsc_insertions_and_gets()
     return
 end
 
-function dynsparsematrix_factory(nbrows, nbcols, density::Float64 = 0.05)
-    I = Vector{Int}()
-    J = Vector{Int}()
-    V = Vector{Float64}()
-    for i in 1:nbrows, j in 1:nbcols
-        if rand(rng, 0:0.001:1) <= density
-            push!(I, i)
-            push!(J, j)
-            push!(V, rand(rng, 0:0.0001:1000))
-        end
-    end
-    return I, J, V
-end
 
 function dynsparsematrix_simple_use()
     # Test A.0 : create an empty matrix

@@ -269,3 +269,35 @@ function Base.show(io::IO, pma::PackedMemoryArray{K,T,P}) where {K,T,P}
     )
     return
 end
+
+function _arrays_equal(array1::Elements, array2::Elements)
+    i = 1
+    j = 1
+    while i <= length(array1) || j <= length(array2)
+        while (i <= length(array1) && array1[i] === nothing) || (j <= length(array2) && array2[j] === nothing)
+            if i <= length(array1) && array1[i] === nothing
+                i += 1
+            end
+            if j <= length(array2) && array2[j] === nothing
+                j += 1
+            end
+            if i == length(array1) + 1 && j == length(array2) + 1
+                break
+            end
+        end
+        (i > length(array1) && j <= length(array2)) && return false
+        (i <= length(array1) && j > length(array2)) && return false
+        if i <= length(array1) && j <= length(array2) && array1[i] != array2[j]
+            return false
+        end
+        i += 1
+        j += 1
+    end
+    return true
+end
+
+function Base.:(==)(pma1::PackedMemoryArray, pma2::PackedMemoryArray)
+    pma1 === pma2 && return true
+    pma1.nb_elements != pma2.nb_elements && return false
+    return _arrays_equal(pma1.array, pma2.array)
+end

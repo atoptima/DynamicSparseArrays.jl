@@ -1,8 +1,8 @@
-include("utils.jl")
 include("moves.jl")
 include("finds.jl")
 include("writes.jl")
 include("rebalance.jl")
+include("comparison.jl")
 
 function unit_tests()
     @testset "Moves - unit tests" begin
@@ -35,6 +35,10 @@ function unit_tests()
     @testset "Writes - unit tests" begin
         test_insert()
         test_delete()
+    end
+
+    @testset "Comparison - unit tests" begin
+        test_equal()
     end
     return
 end
