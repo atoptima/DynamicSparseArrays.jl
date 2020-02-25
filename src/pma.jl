@@ -208,16 +208,21 @@ Base.ndims(pma::PackedMemoryArray) = 1
 Base.size(pma::PackedMemoryArray) = (length(pma.array),)
 Base.length(pma::PackedMemoryArray) = pma.nb_elements
 
-Base.iterate(pma::PackedMemoryArray) = _iterate(pma, iterate(pma.array))
-Base.iterate(pma::PackedMemoryArray, state) = _iterate(pma, iterate(pma.array, state))
+function Base.iterate(pma::PackedMemoryArray, state = (eachindex(getfield(pma, :array)),))
+    array = getfield(pma, :array)
+    y = iterate(state...)
+    y === nothing && return nothing
+    return _iterate(array[y[1]], array, (state[1], Base.tail(y)...))
+end
 
-# Ignore empty cells
-function _iterate(pma::PackedMemoryArray, iter_result)
-    while iter_result !== nothing && iter_result[1] === nothing
-        element, state = iter_result
-        iter_result = iterate(pma, state)
-    end
-    return iter_result
+function _iterate(curelem::Nothing, array::Elements{K,T}, state) where {K,T}
+    y = iterate(state...)
+    y === nothing && return nothing
+    return _iterate(array[y[1]], array, (state[1], Base.tail(y)...))
+end
+
+function _iterate(curelem::Tuple{K,T}, array::Elements{K,T}, state) where {K,T}
+    return curelem, state
 end
 
 Base.lastindex(pma::PackedMemoryArray) = lastindex(pma.array)
