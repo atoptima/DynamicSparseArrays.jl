@@ -59,6 +59,20 @@ function dynsparsevec_simple_use()
 
     # Test 4 : SemiColon
     @test vec[:] === vec
+
+    # Test 5 : Equality comparison
+    I = [1, 2, 3, 5, 6, 8, 9]
+    J = [1.0, 1.0, 1.0, 2.0, 1.0, 1.0, 3.0]
+    vec1 = dynamicsparsevec(I,J)
+
+    K = [1, 2, 3, 5, 6, 8, 9, 10, 11]
+    L = [1.0, 1.0, 1.0, 2.0, 1.0, 1.0, 3.0, 2.0, 3.0]
+    vec2 = dynamicsparsevec(K,L)
+    @test vec1 != vec2
+
+    vec2[10] = 0
+    vec2[11] = 0
+    @test vec1 == vec2
     return
 end
 
