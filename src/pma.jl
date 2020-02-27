@@ -267,6 +267,7 @@ function Base.show(io::IO, pma::PackedMemoryArray{K,T,P}) where {K,T,P}
         io, pma.capacity, "-element ", typeof(pma), " with ", pma.nb_elements, 
         " stored ", pma.nb_elements == 1 ? "entry." : "entries."
     )
+    println(io, pma.array)
     return
 end
 
@@ -301,3 +302,22 @@ function Base.:(==)(pma1::PackedMemoryArray, pma2::PackedMemoryArray)
     pma1.nb_elements != pma2.nb_elements && return false
     return _arrays_equal(pma1.array, pma2.array)
 end
+
+# Customized broadcasting for PackedMemoryArray (copy from documentation)
+struct PmaStyle <: Broadcast.BroadcastStyle end
+Base.BroadcastStyle(::Type{<:PackedMemoryArray}) = PmaStyle()
+
+
+Base.BroadcastStyle(::Type{<:PackedMemoryArray}) = Broadcast.ArrayStyle{PackedMemoryArray}()
+
+function Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{PackedMemoryArray}}, ::Type{ElType}) where ElType
+    pma = find_pma(bc)
+    return deepcopy(pma)
+end
+
+"`A = find_aac(As)` returns the first ArrayAndChar among the arguments."
+find_pma(bc::Base.Broadcast.Broadcasted) = find_pma(bc.args)
+find_pma(args::Tuple) = find_pma(find_pma(args[1]), Base.tail(args))
+find_pma(x) = x
+find_pma(a::PackedMemoryArray, rest) = a
+find_pma(::Any, rest) = find_pma(rest)

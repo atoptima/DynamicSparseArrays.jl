@@ -73,6 +73,21 @@ function dynsparsevec_simple_use()
     vec2[10] = 0
     vec2[11] = 0
     @test vec1 == vec2
+
+    # Test 4 : constant * vector
+    I = ['b', 'e', 'g', 'k']
+    V = [15/3, 42, 1.8, 4.7]
+    vec3 = dynamicsparsevec(I,V)
+
+    vec4 = vec3 .* 2
+    @show typeof(vec3)
+    @show vec4
+    @test vec4['a'] == 0
+    @test vec4['b'] == 30/3
+    @test vec4['c'] == 0
+    @test vec4['e'] == 84
+    @test vec4['g'] == 1.8 * 2
+    @test vec4['k'] == 4.7 * 2
     return
 end
 
