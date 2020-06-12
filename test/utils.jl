@@ -7,6 +7,7 @@ Inputs :
 Output (3-Tuple) :
     - array
     - number of empty entries
+    - number of non-empty entries
 """
 function array_factory(capacity::Int, expnbempty::Int, k::Int)
     nbempty = 0

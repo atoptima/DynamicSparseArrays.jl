@@ -1,5 +1,5 @@
 function test_movecellstoleft()
-    array, nbempty, _ = array_factory(20, 4, 3)
+    array, nbempty, _ = array_factory(20, 5, 3)
 
     # Test 1 : normal use
     array1 = Vector(array)
