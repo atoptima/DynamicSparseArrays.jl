@@ -1,7 +1,7 @@
 module DynamicSparseArrays
 
 export PackedMemoryArray,
-       PackedCSC, 
+       PackedCSC,
        MappedPackedCSC,
        dynamicsparsevec,
        dynamicsparse,
@@ -19,5 +19,6 @@ include("writes.jl")
 include("pma.jl")
 include("pcsr.jl")
 
-end# module
+include("views.jl")
 
+end# module

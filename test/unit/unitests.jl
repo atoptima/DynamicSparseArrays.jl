@@ -3,6 +3,7 @@ include("finds.jl")
 include("writes.jl")
 include("rebalance.jl")
 include("comparison.jl")
+include("views.jl")
 
 function unit_tests()
     @testset "Moves - unit tests" begin
@@ -19,7 +20,7 @@ function unit_tests()
         test_pack_spread(1000000, 5961)
 
         test_pack_spread_of_empty_array()
-        
+
         test_pack_spread_with_semaphores(100, 10)
         test_pack_spread_with_semaphores(1000, 8)
         test_pack_spread_with_semaphores(500, 11)
@@ -39,6 +40,10 @@ function unit_tests()
 
     @testset "Comparison - unit tests" begin
         test_equal()
+    end
+
+    @testset "Views" begin
+        test_views()
     end
     return
 end
