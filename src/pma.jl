@@ -260,7 +260,6 @@ function Base.setindex!(pma::PackedMemoryArray{K,T,P}, value, key::K) where {K,T
     return
 end
 
-
 # show TODO : to be improved (issue #1)
 function Base.show(io::IO, pma::PackedMemoryArray{K,T,P}) where {K,T,P}
     println(

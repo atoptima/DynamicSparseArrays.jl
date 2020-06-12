@@ -1,15 +1,17 @@
 """
-    insert!(array, key, value, from, to, seg_cap, semaphores)
+    insert!(array::Elements{K,T}, key::K, value::T, from, to, semaphores)
 
 Insert the element `(key, value)` in the subarray of `array` starting at 
 position `from` and ending at position `to` included.
 
 Return the position where the element is located and a boolean equal to `true`
 if it is a new `key`.
+
+    insert!(array::Elements{K,T}, key::K, value::T, semaphores)
+
+Insert the element `(key, value)` in `array`.
 """
-function insert!(
-    array::Elements{K,T}, key::K, value, from::Int, to::Int, semaphores
-) where {K,T}
+function insert!(array::Elements{K,T}, key::K, value, from::Int, to::Int, semaphores) where {K,T}
     (pos, _) = find(array, key, from, to)
     if _getkey(array, pos) == key && from <= pos <= to
         array[pos] = (key, value)
@@ -21,9 +23,7 @@ function insert!(
 end
 
 # Element (key, value) will be inserted after pos
-function _insert!(
-    array::Elements{K,T}, key::K, value, pos::Int, semaphores
-) where {K,T}
+function _insert!(array::Elements{K,T}, key::K, value, pos::Int, semaphores) where {K,T}
     insertion_pos = pos
     next_empty_pos = _nextemptypos(array, pos)
     if next_empty_pos != 0
@@ -72,7 +72,7 @@ function delete!(array::Elements{K,T}, key::K) where {K,T}
 end
 
 """
-    purge!(array, from, to, sem_key)
+    purge!(array, from, to)
 
 Delete from `array` all elements between positions `from` and `to` included.
 Return middle and the number of elements deleted

@@ -1,5 +1,5 @@
 """
-    find(array::Elements, key, from, to)
+    find(array::Vector{Union{Nothing, T}}, key, from::Int, to::Int) where {T}
 
 Look for the element indexed by `key` in the subarray of `array` starting at 
 position `from` and ending at position `to`.
@@ -14,7 +14,7 @@ If the element has no predecessor in the subarray, the method returns the
 position and the last element located in the left outside.
 
 
-    find(array::Elements, key)
+    find(array::Vector{Union{Nothing, T}}, key) where {T}
 
 Look for the element indexed by `key` in `array`.
 

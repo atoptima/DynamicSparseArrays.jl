@@ -4,9 +4,7 @@ Move cells of `array` to the right from position `from` to position `to`
 content of the cell at position `to` is replaced by the content of the cell at
 position `to - 1`.
 """
-function _movecellstoright!(
-    array::Elements{K,T}, from::Int, to::Int, semaphores
-) where {K,T}
+function _movecellstoright!(array::Elements{K,T}, from::Int, to::Int, semaphores) where {K,T}
     len = length(array)
     array[to] == nothing || throw(ArgumentError("The cell erased by the movement must contain nothing."))
     1 <= from <= len || throw(BoundsError("cannot access $(len)-elements array at index [$(from)]."))
@@ -15,9 +13,7 @@ function _movecellstoright!(
     return
 end
 
-function _moverightloop!(
-    array::Elements{K,T}, from, to, ::Nothing
-) where {K,T}
+function _moverightloop!(array::Elements{K,T}, from, to, ::Nothing) where {K,T}
     i = to
     @inbounds while i > from
         i -= 1
@@ -27,9 +23,7 @@ function _moverightloop!(
     return
 end
 
-function _moverightloop!(
-    array::Elements{K,T}, from, to, semaphores::Vector
-) where {K,T}
+function _moverightloop!(array::Elements{K,T}, from, to, semaphores::Vector) where {K,T}
     i = to
     sem_key = semaphore_key(K)
     @inbounds while i > from
@@ -53,9 +47,7 @@ Move cells of `array` to the left from position `from` to position `to`
 content of the cell at position `to` is replaced by the content of the cell at
 position `to + 1`.
 """
-function _movecellstoleft!(
-    array::Elements{K,T}, from::Int, to::Int, semaphores
-) where {K,T}
+function _movecellstoleft!(array::Elements{K,T}, from::Int, to::Int, semaphores) where {K,T}
     len = length(array)
     array[to] == nothing || throw(ArgumentError("The cell erased by the movement must contain nothing."))
     1 <= from <= len || throw(BoundsError("cannot access $(len)-elements array at index [$(from)]."))
@@ -64,9 +56,7 @@ function _movecellstoleft!(
     return
 end
 
-function _moveleftloop!(
-    array::Elements{K,T}, from, to, ::Nothing
-) where {K,T}
+function _moveleftloop!(array::Elements{K,T}, from, to, ::Nothing) where {K,T}
     i = to
     @inbounds while i < from
         i += 1
@@ -76,9 +66,7 @@ function _moveleftloop!(
     return
 end
 
-function _moveleftloop!(
-    array::Elements{K,T}, from, to, semaphores::Vector
-) where {K,T}
+function _moveleftloop!(array::Elements{K,T}, from, to, semaphores::Vector) where {K,T}
     i = to
     sem_key = semaphore_key(K)
     @inbounds while i < from
@@ -97,13 +85,13 @@ function _moveleftloop!(
 end
 
 """
-Consider the subarray of `array` delimited by `window_start` included and 
-`window_end` included.
-This method packs the `m` non-empty cells on the left side of the subarray.
+    pack!(array::Elements{K,T}, window_start, window_end, m)
+
+Given a subarray of `array` delimited by `window_start` included and 
+`window_end` included,
+this method packs the `m` non-empty cells on the left side of the subarray.
 """
-function pack!(
-    array::Elements{K,T}, window_start, window_end, m
-) where {K,T}
+function pack!(array::Elements{K,T}, window_start, window_end, m) where {K,T}
     i = window_start
     j = window_start
     @inbounds while i < window_start + m
@@ -122,14 +110,14 @@ function pack!(
 end
 
 """
-Consider the subarray of `array` delimited by `window_start` included and 
-`window_end` included.
-This method spreads evenly the `m` non-empty cells that have been packed on the 
+    spread!(array::Elements{K,T}, windows_start, window_end, m)
+
+Given a subarray of `array` delimited by `window_start` included and 
+`window_end` included,
+this method spreads evenly the `m` non-empty cells that have been packed on the 
 left side of the subarray.
 """
-function spread!(
-    array::Elements{K,T}, window_start, window_end, m
-) where {K,T}
+function spread!(array::Elements{K,T}, window_start, window_end, m) where {K,T}
     capacity = window_end - window_start + 1
     nb_empty_cells = capacity - m
     empty_cell_freq = capacity / nb_empty_cells
@@ -151,9 +139,7 @@ function spread!(
     return
 end
 
-function spread!(
-    array::Elements{K,T}, window_start, window_end, m, semaphores
-) where {K,T}
+function spread!(array::Elements{K,T}, window_start, window_end, m, semaphores) where {K,T}
     capacity = window_end - window_start + 1
     nb_empty_cells = capacity - m
     empty_cell_freq = capacity / nb_empty_cells
