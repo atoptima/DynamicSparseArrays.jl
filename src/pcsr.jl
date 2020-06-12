@@ -1,5 +1,6 @@
 """
 Matrix whose columns are indexed by an integer.
+TODO : change the name ?
 """
 mutable struct PackedCSC{K,T<:Real}
     nb_partitions::Int
@@ -20,7 +21,7 @@ nbpartitions(pcsc::PackedCSC) = length(pcsc.semaphores)
 semaphore_key(::Type{K}) where {K<:Integer} = zero(K)
 
 function PackedCSC(
-    row_keys::Vector{Vector{L}}, values::Vector{Vector{T}}, 
+    row_keys::Vector{Vector{L}}, values::Vector{Vector{T}},
     combine::Function = +
 ) where {L,T <: Real}
     nb_semaphores = length(row_keys)
@@ -29,7 +30,7 @@ function PackedCSC(
     pcsc_keys = Vector{L}()
     pcsc_values = Vector{T}()
     for semaphore_id in 1:nb_semaphores
-        # Insert the semaphore 
+        # Insert the semaphore
         push!(pcsc_keys, semaphore_key(L))
         push!(pcsc_values, T(semaphore_id)) # This is why T <: Real
         # Create the column
@@ -59,7 +60,7 @@ PackedCSC(pcsc::PackedCSC) = deepcopy(pcsc)
 MappedPackedCSC(mpcsc::MappedPackedCSC) = deepcopy(mpcsc)
 
 function MappedPackedCSC(
-    row_keys::Vector{Vector{K}}, column_keys::Vector{L}, 
+    row_keys::Vector{Vector{K}}, column_keys::Vector{L},
     values::Vector{Vector{T}}, combine::Function = +
 ) where {K,L,T <: Real}
     pcsc = PackedCSC(row_keys, values, combine)
@@ -106,7 +107,7 @@ function addpartition!(pcsc::PackedCSC{K,T}, prev_sem_id::Int) where {K,T}
     if pcsc.semaphores[prev_sem_id + 1] === nothing
         next_sem_id = _nextnonemptypos(pcsc.semaphores, prev_sem_id + 1)
         sem_pos = pcsc.semaphores[next_sem_id] - 1 #insert the new semaphore in the pma.array just before the next one
-    else 
+    else
         sem_pos = pcsc.semaphores[prev_sem_id + 1] - 1 #insert the new semaphore just before the next one
         resize!(pcsc.semaphores, nb_semaphores + 1) # create room for the position of the new semaphore
         for i in nb_semaphores:-1:(prev_sem_id+1)
@@ -152,7 +153,7 @@ end
 
 _pos_of_partition_start(pcsc, partition) = pcsc.semaphores[partition]
 function _pos_of_partition_end(pcsc, partition)
-    pos = length(pcsc.pma.array) 
+    pos = length(pcsc.pma.array)
     next_partition = _nextnonemptypos(pcsc.semaphores, partition)
     if next_partition != 0
         pos = pcsc.semaphores[next_partition] - 1
@@ -261,11 +262,11 @@ function Base.getindex(mpcsc::MappedPackedCSC{L,K,T}, ::Colon, col::K) where {L,
     if col_key != col # The column does not exist
         return PackedMemoryArray(L,T) # Empty one
     end
-    return mpcsc.pcsc[:, col_pos] 
+    return mpcsc.pcsc[:, col_pos]
 end
 
 
-# setindex 
+# setindex
 function Base.setindex!(pcsc::PackedCSC{K,T}, value, key::K, partition::Int) where {K,T}
     if partition > length(pcsc.semaphores)
         _add_partitions!(pcsc, partition)
@@ -278,7 +279,7 @@ function Base.setindex!(pcsc::PackedCSC{K,T}, value, key::K, partition::Int) whe
     else
         _delete!(pcsc, key, from, to)
     end
-    return 
+    return
 end
 
 function _add_partitions!(pcsc, nb_part_to_reach)
@@ -355,7 +356,7 @@ function _dynamicsparse(
             prev_j = cur_j
         end
     end
-    resize!(I, write_pos) 
+    resize!(I, write_pos)
     resize!(J, write_pos)
     resize!(V, write_pos)
 
@@ -382,13 +383,13 @@ function _dynamicsparse(
     else
         # TODO : Check that we use integer keys for columns, otherwise we have to use a map
         # Add empty columns in the rows_keys vector
-        # We can put all those things in a 
+        # We can put all those things in a
         return PackedCSC(rows_keys, values)
     end
 end
 
 function dynamicsparse(
-    I::Vector{K}, J::Vector{L}, V::Vector{T}, combine::Function, 
+    I::Vector{K}, J::Vector{L}, V::Vector{T}, combine::Function,
     always_use_map::Bool
 ) where {K,L,T}
     applicable(zero, T) ||
@@ -396,7 +397,7 @@ function dynamicsparse(
     length(I) == length(J) == length(V) ||
         throw(ArgumentError("rows, columns, & nonzeros do not have same length."))
     length(I) > 0 ||
-        throw(ArgumentError("vectors cannot be empty.")) 
+        throw(ArgumentError("vectors cannot be empty."))
     applicable(<, J, J) ||
         throw(ArgumentError("set of column keys must be totally ordered (define method Base.:< for type $L)."))
     return _dynamicsparse(
@@ -404,7 +405,7 @@ function dynamicsparse(
     )
 end
 
-dynamicsparse(I,J,V) = dynamicsparse(I, J, V, +, true) 
+dynamicsparse(I,J,V) = dynamicsparse(I, J, V, +, true)
 
 function dynamicsparse(::Type{K}, ::Type{L}, ::Type{T}) where {K,L,T}
     return MappedPackedCSC(K,L,T)

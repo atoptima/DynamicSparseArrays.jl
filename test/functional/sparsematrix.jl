@@ -15,7 +15,7 @@ function pcsc_simple_use()
     @test length(pcsc1) == 9 # nb of non-zero entries
     @test size(pcsc1)[1] > length(pcsc1)
     @test size(pcsc1)[2] == 3
-    
+
     # Test A.2 : Check value of entries
     matrix = [2 0 3; 3 2 0; 4 0 0; 0 0 0; 0 0 0; 0 4 5; 0 5 0; 0 0 7]
     nr, nc = size(matrix)
@@ -28,7 +28,7 @@ function pcsc_simple_use()
     matrix[1,1] = 4
     pcsc1[1,1] = 4  # set
     matrix[1,2] += 3
-    pcsc1[1,2] += 3 # new element 
+    pcsc1[1,2] += 3 # new element
     matrix[3,1] = 0
     pcsc1[3,1] = 0  # rm
     matrix[4,2] = 1
@@ -50,7 +50,7 @@ function pcsc_simple_use()
     # Test A.5.1 : retrieve a row
     row = pcsc1[2, :]
     row_from_matrix = matrix[2, :]
-    
+
     @test length(row) == 2
     for i in 1:length(row_from_matrix) # TODO : good test
         @test row[i] == row_from_matrix[i]
@@ -135,7 +135,7 @@ function pcsc_insertions_and_gets()
     end
 
     # insertions
-    for i in 1:100000 
+    for i in 1:100000
         partition = rand(rng, 1:nbpartitions)
         key = rand(rng, 1:10000)
         value = rand(rng, 1:0.1:100)
@@ -178,7 +178,7 @@ function dynsparsematrix_simple_use()
     @test length(matrix) == 9 # nb of non-zero entries
     @test size(matrix)[1] > length(matrix)
     @test size(matrix)[2] == 3
-    
+
     # Test A.2 : Check value of entries
     matrix2 = [2 0 3; 3 2 0; 4 0 0; 0 0 0; 0 0 0; 0 4 5; 0 5 0; 0 0 7]
     nr, nc = size(matrix2)
@@ -191,7 +191,7 @@ function dynsparsematrix_simple_use()
     matrix2[1,1] = 4
     matrix[1,1] = 4  # set
     matrix2[1,2] += 3
-    matrix[1,2] += 3 # new element 
+    matrix[1,2] += 3 # new element
     matrix2[3,1] = 0
     matrix[3,1] = 0  # rm
     matrix2[4,2] = 1
@@ -212,7 +212,7 @@ function dynsparsematrix_simple_use()
     # Test A.5.1 : retrieve a row
     row = matrix[2, :]
     row_from_matrix = matrix2[2, :]
-    
+
     @test length(row) == 2
     for i in 1:length(row_from_matrix) # TODO : good test
         @test row[i] == row_from_matrix[i]
@@ -343,8 +343,8 @@ function dynsparsematrix_insertions_and_gets()
     for k in 1:length(I)
         @test matrix[I[k],J[k]] == V[k]
     end
-    
-    # Adding new columns 
+
+    # Adding new columns
     for col in nb_cols:5000
         matrix[1,col] = 1
     end
