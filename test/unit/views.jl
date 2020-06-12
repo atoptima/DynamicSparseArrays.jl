@@ -21,8 +21,7 @@ function test_views()
 
     ids = Int[]
     vals = Int[]
-    slice = view(matrix, :, 18)
-    for (id, val) in slice
+    for (id, val) in @view matrix[:, 18]
         push!(ids, id)
         push!(vals, val)
     end
