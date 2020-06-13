@@ -7,7 +7,8 @@ export PackedMemoryArray,
        dynamicsparse,
        nbpartitions,
        deletepartition!,
-       deletecolumn!
+       deletecolumn!,
+       deleterow!
 
 const Elements{K,T} = Vector{Union{Nothing,Tuple{K,T}}}
 
@@ -20,5 +21,7 @@ include("pma.jl")
 include("pcsr.jl")
 
 include("views.jl")
+
+include("matrix.jl")
 
 end# module

@@ -13,8 +13,7 @@ function pcsc_simple_use()
     check_key_order(pcsc1.pma.array, pcsc1.semaphores)
     @test ndims(pcsc1) == 2
     @test length(pcsc1) == 9 # nb of non-zero entries
-    @test size(pcsc1)[1] > length(pcsc1)
-    @test size(pcsc1)[2] == 3
+    @test nbpartitions(pcsc1) == 3
 
     # Test A.2 : Check value of entries
     matrix = [2 0 3; 3 2 0; 4 0 0; 0 0 0; 0 0 0; 0 4 5; 0 5 0; 0 0 7]
@@ -35,7 +34,7 @@ function pcsc_simple_use()
     pcsc1[4,2] = 1 # new element
 
     @test length(pcsc1) == 10
-    @test size(pcsc1)[2] == 3
+    @test nbpartitions(pcsc1) == 3
 
     #@test pcsc1 == matrix # TODO
     for i in 1:nr, j in 1:nc
@@ -80,7 +79,7 @@ function pcsc_simple_use()
     # Test A.6 : add columns
     pcsc1[10,5] = 9 # new element and new column
     @test length(pcsc1) == 11
-    @test size(pcsc1)[2] == 5 # 2 new partitions
+    @test nbpartitions(pcsc1) == 5 # 2 new partitions
 
     pcsc1[1,4] = 2
     @test length(pcsc1) == 12
@@ -91,7 +90,7 @@ function pcsc_simple_use()
     nb_elems = length(pcsc1)
     nb_elems_in_part_2 = length(pcsc1[:,2])
     deletepartition!(pcsc1, 2)
-    @test size(pcsc1)[2] == 4
+    @test nbpartitions(pcsc1) == 4
     @test length(pcsc1) ==  nb_elems - nb_elems_in_part_2 #TODO
     nb_sem = check_semaphores(pcsc1.pma.array, pcsc1.semaphores)
     @test nb_sem == 4
@@ -107,7 +106,7 @@ function pcsc_simple_use()
     check_semaphores(pcsc2.pma.array, pcsc2.semaphores)
     check_key_order(pcsc2.pma.array, pcsc2.semaphores)
     @test length(pcsc2) == 11
-    @test size(pcsc2)[2] == 4
+    @test nbpartitions(pcsc2) == 4
 
     # Test B.2
     matrix = [3 0 0 4; 4 0 2 1; 4 0 0 0; 0 0 0 0; 0 0 1 0; 0 0 4 5; 0 0 6 0; 0 0 0 7]
@@ -154,11 +153,13 @@ function pcsc_insertions_and_gets()
     return
 end
 
+DynamicSparseArrays.semaphore_key(::Type{Char}) = ' '
 
 function dynsparsematrix_simple_use()
-    # Test A.0 : create an empty matrix
-    matrix = dynamicsparse(Int, Int, Float64)
-    @test length(matrix) == 0
+    # Test A.0 : create a matrix and fill it
+    I,J,V = dynsparsematrix_factory(1000, 1000, 0.1)
+    matrix = dynamicsparse(I, J, V)
+
     I,J,V = dynsparsematrix_factory(1000, 1000, 0.2)
     for k in 1:length(I)
         matrix[I[k], J[k]] = V[k]
@@ -172,11 +173,12 @@ function dynsparsematrix_simple_use()
     I = [1, 2, 3, 2, 6, 7, 1, 6, 8]
     V = [2, 3, 4, 2, 4, 5, 3, 5, 7]
     matrix = dynamicsparse(I,J,V)
-    check_semaphores(matrix.pcsc.pma.array, matrix.pcsc.semaphores)
-    check_key_order(matrix.pcsc.pma.array, matrix.pcsc.semaphores)
+    check_semaphores(matrix.colmajor.pcsc.pma.array, matrix.colmajor.pcsc.semaphores)
+    check_key_order(matrix.colmajor.pcsc.pma.array, matrix.colmajor.pcsc.semaphores)
+    check_semaphores(matrix.rowmajor.pcsc.pma.array, matrix.rowmajor.pcsc.semaphores)
+    check_key_order(matrix.rowmajor.pcsc.pma.array, matrix.rowmajor.pcsc.semaphores)
     @test ndims(matrix) == 2
-    @test length(matrix) == 9 # nb of non-zero entries
-    @test size(matrix)[1] > length(matrix)
+    @test length(matrix.colmajor) == length(matrix.rowmajor) == length(matrix) == 9 # nb of non-zero entries
     @test size(matrix)[2] == 3
 
     # Test A.2 : Check value of entries
@@ -197,15 +199,15 @@ function dynsparsematrix_simple_use()
     matrix2[4,2] = 1
     matrix[4,2] = 1 # new element
 
-    @test length(matrix) == 10
-    @test size(matrix)[2] == 3
+    @test length(matrix.rowmajor) == length(matrix.colmajor) == 10
+    @test size(matrix) == (7, 3)
 
     for i in 1:nr, j in 1:nc
         @test matrix[i,j] == matrix2[i,j]
     end
 
     # Test A.4 : make a copy of the matrix
-    matrix3 = MappedPackedCSC(matrix)
+    matrix3 = MappedPackedCSC(matrix.colmajor)
     @test_broken matrix3 == matrix
 
     # Test A.5 : retrieve columns & rows
@@ -251,25 +253,33 @@ function dynsparsematrix_simple_use()
     @test matrix[3,4] == 5
     @test matrix[1,-1] == 1
 
-    @test size(matrix)[2] == 6 # 2 new partitions
+    @test size(matrix)[2] == 6 # 2 new columns
 
-    check_semaphores(matrix.pcsc.pma.array, matrix.pcsc.semaphores)
-    check_key_order(matrix.pcsc.pma.array, matrix.pcsc.semaphores)
+    check_semaphores(matrix.colmajor.pcsc.pma.array, matrix.colmajor.pcsc.semaphores)
+    check_key_order(matrix.colmajor.pcsc.pma.array, matrix.colmajor.pcsc.semaphores)
+    check_semaphores(matrix.rowmajor.pcsc.pma.array, matrix.rowmajor.pcsc.semaphores)
+    check_key_order(matrix.rowmajor.pcsc.pma.array, matrix.rowmajor.pcsc.semaphores)
 
     # Test A.7 : delete columns (and recreate the column)
-    nb_elems_in_part_2 = length(matrix[:,2])
     deletecolumn!(matrix, 2)
-    @test size(matrix)[2] == 5
-    @test length(matrix) ==  14 - nb_elems_in_part_2 #TODO
-    nb_sem = check_semaphores(matrix.pcsc.pma.array, matrix.pcsc.semaphores)
-    @test nb_sem == 5
-    check_key_order(matrix.pcsc.pma.array, matrix.pcsc.semaphores)
+    @test size(matrix) == (8, 5)
+
+    nb_sem1 = check_semaphores(matrix.colmajor.pcsc.pma.array, matrix.colmajor.pcsc.semaphores)
+    nb_sem2 = check_semaphores(matrix.rowmajor.pcsc.pma.array, matrix.rowmajor.pcsc.semaphores)
+    @test nb_sem1 == 5
+    @test nb_sem2 == 8
+    check_key_order(matrix.colmajor.pcsc.pma.array, matrix.colmajor.pcsc.semaphores)
+    check_key_order(matrix.rowmajor.pcsc.pma.array, matrix.rowmajor.pcsc.semaphores)
 
     matrix[1,2] = 1
     @test matrix[1,2] == 1
-    nb_sem = check_semaphores(matrix.pcsc.pma.array, matrix.pcsc.semaphores)
-    @test nb_sem == 6
-    check_key_order(matrix.pcsc.pma.array, matrix.pcsc.semaphores)
+
+    nb_sem1 = check_semaphores(matrix.colmajor.pcsc.pma.array, matrix.colmajor.pcsc.semaphores)
+    nb_sem2 = check_semaphores(matrix.rowmajor.pcsc.pma.array, matrix.rowmajor.pcsc.semaphores)
+    @test nb_sem1 == 6
+    @test nb_sem2 == 8
+    check_key_order(matrix.colmajor.pcsc.pma.array, matrix.colmajor.pcsc.semaphores)
+    check_key_order(matrix.rowmajor.pcsc.pma.array, matrix.rowmajor.pcsc.semaphores)
 
     # Test B
     I = [1, 1, 2, 4, 3, 5, 1, 3, 1, 5, 1, 5, 4]
@@ -353,7 +363,8 @@ function dynsparsematrix_insertions_and_gets()
         @test matrix[1,col] == 1
     end
 
-    check_semaphores(matrix.pcsc.pma.array, matrix.pcsc.semaphores)
+    check_semaphores(matrix.colmajor.pcsc.pma.array, matrix.colmajor.pcsc.semaphores)
+    check_semaphores(matrix.rowmajor.pcsc.pma.array, matrix.rowmajor.pcsc.semaphores)
 end
 
 function dynsparsematrix_deletions()
@@ -370,10 +381,12 @@ function dynsparsematrix_deletions()
     @test matrix[5,1] == 3
     @test matrix[2,3] == 10
 
-    check_semaphores(matrix.pcsc.pma.array, matrix.pcsc.semaphores)
+    check_semaphores(matrix.colmajor.pcsc.pma.array, matrix.colmajor.pcsc.semaphores)
+    check_semaphores(matrix.rowmajor.pcsc.pma.array, matrix.rowmajor.pcsc.semaphores)
 
     DynamicSparseArrays.deletecolumn!(matrix, 3)
-    check_semaphores(matrix.pcsc.pma.array, matrix.pcsc.semaphores)
+    check_semaphores(matrix.colmajor.pcsc.pma.array, matrix.colmajor.pcsc.semaphores)
+    check_semaphores(matrix.rowmajor.pcsc.pma.array, matrix.rowmajor.pcsc.semaphores)
 
     for i in 1:5
         @test matrix[i,3] == 0

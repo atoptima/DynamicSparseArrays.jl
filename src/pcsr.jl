@@ -1,6 +1,5 @@
 """
 Matrix whose columns are indexed by an integer.
-TODO : change the name ?
 """
 mutable struct PackedCSC{K,T<:Real}
     nb_partitions::Int
@@ -17,7 +16,8 @@ mutable struct MappedPackedCSC{K,L,T<:Real}
     pcsc::PackedCSC{K,T}
 end
 
-nbpartitions(pcsc::PackedCSC) = length(pcsc.semaphores)
+nbpartitions(pcsc::PackedCSC) = pcsc.nb_partitions
+nbpartitions(mpcsc::MappedPackedCSC) = nbpartitions(mpcsc.pcsc)
 semaphore_key(::Type{K}) where {K<:Integer} = zero(K)
 
 function PackedCSC(
@@ -189,11 +189,11 @@ end
 
 Base.ndims(matrix::PackedCSC) = 2
 Base.length(matrix::PackedCSC) = length(matrix.pma) - matrix.nb_partitions
-Base.size(matrix::PackedCSC) = (length(matrix.pma.array), matrix.nb_partitions)
+#Base.size(matrix::PackedCSC) = (length(matrix.pma.array), matrix.nb_partitions)
 
 Base.ndims(matrix::MappedPackedCSC) = ndims(matrix.pcsc)
 Base.length(matrix::MappedPackedCSC) = length(matrix.pcsc)
-Base.size(matrix::MappedPackedCSC) = size(matrix.pcsc)
+#Base.size(matrix::MappedPackedCSC) = size(matrix.pcsc)
 
 
 # getindex
@@ -388,27 +388,21 @@ function _dynamicsparse(
     end
 end
 
-function dynamicsparse(
-    I::Vector{K}, J::Vector{L}, V::Vector{T}, combine::Function,
-    always_use_map::Bool
+function dynamicsparsecolmajor(
+    I::Vector{K}, J::Vector{L}, V::Vector{T}, combine::Function = +,
+    always_use_map::Bool = true
 ) where {K,L,T}
     applicable(zero, T) ||
         throw(ArgumentError("cannot apply method zero over $(T)."))
     length(I) == length(J) == length(V) ||
-        throw(ArgumentError("rows, columns, & nonzeros do not have same length."))
+        throw(ArgumentError("rows, columns, and nonzeros do not have same length."))
     length(I) > 0 ||
         throw(ArgumentError("vectors cannot be empty."))
-    applicable(<, J, J) ||
-        throw(ArgumentError("set of column keys must be totally ordered (define method Base.:< for type $L)."))
+    applicable(<, L, L) ||
+        throw(ArgumentError("set of keys must be totally ordered (define method Base.:< for type $L)."))
     return _dynamicsparse(
         Vector(I), Vector(J), Vector(V), combine, always_use_map
     )
-end
-
-dynamicsparse(I,J,V) = dynamicsparse(I, J, V, +, true)
-
-function dynamicsparse(::Type{K}, ::Type{L}, ::Type{T}) where {K,L,T}
-    return MappedPackedCSC(K,L,T)
 end
 
 # Show
