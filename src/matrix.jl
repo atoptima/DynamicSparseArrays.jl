@@ -9,6 +9,13 @@ function dynamicsparse(I::Vector{K}, J::Vector{L}, V::Vector{T}) where {K,L,T}
     )
 end
 
+# TODO remove
+function dynamicsparse(::Type{K}, ::Type{L}, ::Type{T}) where {K,L,T}
+    return DynamicSparseMatrix(
+        dynamicsparsecolmajor(K,L,T), dynamicsparsecolmajor(L,K,T)
+    )
+end
+
 function Base.setindex!(m::DynamicSparseMatrix{K,L,T}, val, row::K, col::L) where {K,L,T}
     m.colmajor[row, col] = val
     m.rowmajor[col, row] = val
@@ -44,6 +51,6 @@ function deleterow!(matrix::DynamicSparseMatrix{K,L,T}, row::K) where {K,L,T}
     for (col, val) in @view matrix[row, :]
         matrix.colmajor[row, col] = zero(T)
     end
-    deletecolumn!(matrix.rowmajor, col)
+    deletecolumn!(matrix.rowmajor, row)
     return true
 end

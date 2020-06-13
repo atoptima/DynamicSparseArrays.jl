@@ -68,6 +68,7 @@ function MappedPackedCSC(
     return MappedPackedCSC(col_keys, pcsc)
 end
 
+# TODO : remove
 function MappedPackedCSC(::Type{K}, ::Type{L}, ::Type{T}) where {K,L,T}
     pcsc = PackedCSC(K, T)
     col_keys = Vector{Union{Nothing, L}}()
@@ -403,6 +404,11 @@ function dynamicsparsecolmajor(
     return _dynamicsparse(
         Vector(I), Vector(J), Vector(V), combine, always_use_map
     )
+end
+
+# TODO remove
+function dynamicsparsecolmajor(::Type{K}, ::Type{L}, ::Type{T}) where {K,L,T}
+    return MappedPackedCSC(K,L,T)
 end
 
 # Show
