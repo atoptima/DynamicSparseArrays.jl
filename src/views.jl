@@ -10,6 +10,7 @@ struct DynamicMatrixColView{K,L,T<:Real}
     col_key::L
     partition::Int
     array::Elements{K,T}
+    empty::Bool
 end
 
 function Base.view(mpcsc::MappedPackedCSC{K,L,T}, row::K, ::Colon) where {K,L,T}
@@ -18,13 +19,14 @@ end
 
 function Base.view(mpcsc::MappedPackedCSC{K,L,T}, ::Colon, col::L) where {K,L,T}
     col_pos, col_key = find(mpcsc.col_keys, col)
-    col_key != col && throws(ArgumentError("Cannot view a column $(col) that does not exist."))
+    empty_col = col_key != col
     array = getfield(getfield(getfield(mpcsc, :pcsc), :pma), :array)
-    return DynamicMatrixColView{K,L,T}(mpcsc, col, col_pos, array)
+    return DynamicMatrixColView{K,L,T}(mpcsc, col, col_pos, array, empty_col)
 end
 
 function Base.iterate(dms::DynamicMatrixColView)
     pcsc = getfield(getfield(dms, :mpcsc), :pcsc)
+    getfield(dms, :empty) && return nothing
     from = _pos_of_partition_start(pcsc, dms.partition) + 1
     to = _pos_of_partition_end(pcsc, dms.partition)
     return iterate(dms, (UnitRange{Int}(from, to),))
