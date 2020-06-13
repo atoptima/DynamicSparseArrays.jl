@@ -315,10 +315,18 @@ function dynsparsematrix_simple_use()
     matrix[2, 'b'] = 11
     @test matrix[2, 'b'] == 11
 
+    @test size(matrix) == (4, 5)
+
     # delete column
     deletecolumn!(matrix, 'a')
     @test matrix[1, 'a'] == 0
     @test matrix[2, 'a'] == 0
+
+    deleterow!(matrix, 5)
+    @test matrix[5, 'c'] == 0
+    @test matrix[5, 'e'] == 0
+
+    @test size(matrix) == (3, 4)
     return
 end
 
