@@ -423,6 +423,12 @@ function dynsparsematrix_fill_mode()
         end
     end
 
+    matrix[1, 2] = 2
+    matrix[1, 1] = 1
+
+    values[1, 2] = 2
+    values[1, 1] += 1
+
     closefillmode!(matrix)
 
     for i in axes(values, 1), j in axes(values, 2)

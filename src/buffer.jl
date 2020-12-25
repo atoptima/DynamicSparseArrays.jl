@@ -17,6 +17,19 @@ function addrow!(
     return
 end
 
+function addelem!(
+    buffer::Buffer{L,K,T}, rowid::L, colid::K, val::T
+) where {K,L,T}
+    if !haskey(buffer.rowmajor_coo, rowid)
+        buffer.rowmajor_coo[rowid] = (Vector{K}(), Vector{T}())
+    end
+    r = buffer.rowmajor_coo[rowid]
+    push!(r[1], colid)
+    push!(r[2], val)
+    buffer.length += 1
+    return
+end
+
 function get_rowids_colids_vals(buffer::Buffer{L,K,T}) where {K,L,T}
     rowids = Vector{L}(undef, buffer.length)
     colids = Vector{K}(undef, buffer.length)

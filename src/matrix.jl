@@ -18,8 +18,12 @@ function dynamicsparse(::Type{K}, ::Type{L}, ::Type{T}) where {K,L,T}
 end
 
 function Base.setindex!(m::DynamicSparseMatrix{K,L,T}, val, row::K, col::L) where {K,L,T}
-    m.colmajor[row, col] = val
-    m.rowmajor[col, row] = val
+    if m.fillmode
+        addelem!(m.buffer, row, col, val)
+    else
+        m.colmajor[row, col] = val
+        m.rowmajor[col, row] = val
+    end
     return m
 end
 
@@ -64,8 +68,13 @@ end
 function addrow!(
     matrix::DynamicSparseMatrix{K,L,T}, row::L, colids::Vector{K}, vals::Vector{T}
 ) where {K,L,T}
-    matrix.fillmode || error("addrow! method is available in fill mode only.")
-    addrow!(matrix.buffer, row, colids, vals)
+    if matrix.fillmode
+        addrow!(matrix.buffer, row, colids, vals)
+    else
+        for j in 1:length(colids)
+            setindex!(matrix, row, colids[j], vals[j])
+        end
+    end
     return true
 end
 
