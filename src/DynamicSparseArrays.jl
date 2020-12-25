@@ -8,7 +8,9 @@ export PackedMemoryArray,
        nbpartitions,
        deletepartition!,
        deletecolumn!,
-       deleterow!
+       deleterow!,
+       addrow!,
+       closefillmode!
 
 const Elements{K,T} = Vector{Union{Nothing,Tuple{K,T}}}
 
@@ -21,6 +23,8 @@ include("pma.jl")
 include("pcsr.jl")
 
 include("views.jl")
+
+include("buffer.jl")
 
 include("matrix.jl")
 

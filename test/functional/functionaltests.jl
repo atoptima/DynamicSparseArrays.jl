@@ -27,5 +27,8 @@ function functional_tests()
     @testset "Insertions & finds in MappedPackedCSC matrix - performance" begin
         dynsparsematrix_insertions_and_gets()
     end
+    @testset "Fillin mode" begin
+        dynsparsematrix_fill_mode()
+    end
     return
 end

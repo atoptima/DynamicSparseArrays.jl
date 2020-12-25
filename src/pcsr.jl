@@ -324,7 +324,6 @@ function Base.setindex!(mpcsc::MappedPackedCSC{L,K,T}, value, row::L, col::K) wh
     return setindex!(mpcsc, T(value), row, col)
 end
 
-
 ## Dynamic sparse matrix builder (exported)
 function _dynamicsparse(
     I::Vector{K}, J::Vector{L}, V::Vector{T}, combine, always_use_map
@@ -404,11 +403,6 @@ function dynamicsparsecolmajor(
     return _dynamicsparse(
         Vector(I), Vector(J), Vector(V), combine, always_use_map
     )
-end
-
-# TODO remove
-function dynamicsparsecolmajor(::Type{K}, ::Type{L}, ::Type{T}) where {K,L,T}
-    return MappedPackedCSC(K,L,T)
 end
 
 # Show

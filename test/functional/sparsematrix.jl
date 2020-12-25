@@ -401,3 +401,32 @@ function dynsparsematrix_deletions()
     end
     return
 end
+
+function dynsparsematrix_fill_mode()
+    matrix = dynamicsparse(Int, Int, Int)
+
+    values =  [ 1 0 0 2 0 7 0 0 0 9 1 2;
+                0 3 0 0 1 1 0 0 0 1 0 2;
+                0 0 0 1 1 2 0 0 1 2 0 0;
+                0 0 0 0 0 0 0 1 0 0 0 1;
+                1 2 0 0 0 0 0 0 1 0 0 0 ]
+
+    for i in axes(values, 1)
+        colids = findall(id -> id != 0, values[i, :])
+        addrow!(matrix, i, colids, values[i, colids])
+    end
+
+    for i in axes(values, 1)
+        row = matrix[i, :]
+        for j in axes(values, 2)
+            @test row[j] == values[i,j]
+        end
+    end
+
+    closefillmode!(matrix)
+
+    for i in axes(values, 1), j in axes(values, 2)
+        @test matrix[i, j] == values[i, j]
+    end
+    return
+end
