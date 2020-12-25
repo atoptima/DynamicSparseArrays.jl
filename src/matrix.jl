@@ -82,7 +82,6 @@ function closefillmode!(matrix::DynamicSparseMatrix{K,L,T}) where {K,L,T}
     I, J, V = get_rowids_colids_vals(matrix.buffer)
     matrix.fillmode = false
     matrix.buffer = nothing
-    GC.gc()
     matrix.colmajor = dynamicsparsecolmajor(I,J,V)
     matrix.rowmajor = dynamicsparsecolmajor(J,I,V)
     return true
