@@ -1,14 +1,14 @@
 mutable struct Buffer{L,K,T}
-    rowmajor_coo::Dict{L, Tuple{Vector{L}, Vector{T}}}
+    rowmajor_coo::Dict{K, Tuple{Vector{L}, Vector{T}}}
     length::Int
 end
 
 function buffer(::Type{K}, ::Type{L}, ::Type{T}) where {K,L,T}
-    return Buffer{L,K,T}(Dict{L, Tuple{Vector{K}, Vector{T}}}(), 0)
+    return Buffer{L,K,T}(Dict{K, Tuple{Vector{L}, Vector{T}}}(), 0)
 end
 
 function addrow!(
-    buffer::Buffer{L,K,T}, rowid::L, colids::Vector{K}, vals::Vector{T}
+    buffer::Buffer{L,K,T}, rowid::K, colids::Vector{L}, vals::Vector{T}
 ) where {K,L,T}
     haskey(buffer.rowmajor_coo, rowid) && error("Row with id $rowid already written in dynamic sparse matrix buffer.")
     p = sortperm(colids)
@@ -18,7 +18,7 @@ function addrow!(
 end
 
 function addelem!(
-    buffer::Buffer{L,K,T}, rowid::L, colid::K, val::T
+    buffer::Buffer{L,K,T}, rowid::K, colid::L, val::T
 ) where {K,L,T}
     if !haskey(buffer.rowmajor_coo, rowid)
         buffer.rowmajor_coo[rowid] = (Vector{K}(), Vector{T}())
@@ -31,8 +31,8 @@ function addelem!(
 end
 
 function get_rowids_colids_vals(buffer::Buffer{L,K,T}) where {K,L,T}
-    rowids = Vector{L}(undef, buffer.length)
-    colids = Vector{K}(undef, buffer.length)
+    rowids = Vector{K}(undef, buffer.length)
+    colids = Vector{L}(undef, buffer.length)
     vals = Vector{T}(undef, buffer.length)
 
     curpos = 1
@@ -49,7 +49,7 @@ function get_rowids_colids_vals(buffer::Buffer{L,K,T}) where {K,L,T}
     return rowids, colids, vals
 end
 
-function Base.getindex(buffer::Buffer{L,K,T}, row::L, ::Colon) where {L,K,T}
+function Base.getindex(buffer::Buffer{L,K,T}, row::K, ::Colon) where {L,K,T}
     elems = buffer.rowmajor_coo[row]
     return PackedMemoryArray(elems[1], elems[2])
 end
