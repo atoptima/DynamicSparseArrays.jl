@@ -384,7 +384,7 @@ function _dynamicsparse(
             row_pos = 1
             @inbounds col_keys[col_pos] = cur_col
             @inbounds row_keys[col_pos] = Vector{K}(undef, nb_rows_in_col[col_pos])
-            @inbounds values[col_pos] = Vector{K}(undef, nb_rows_in_col[col_pos])
+            @inbounds values[col_pos] = Vector{T}(undef, nb_rows_in_col[col_pos])
         end
         @inbounds row_keys[col_pos][row_pos] = I[i]
         @inbounds values[col_pos][row_pos] = V[i]
