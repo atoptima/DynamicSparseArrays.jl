@@ -273,7 +273,7 @@ function Base.setindex!(pcsc::PackedCSC{K,T}, value, key::K, partition::Int) whe
         _add_partitions!(pcsc, partition)
     end
     from = pcsc.semaphores[partition]
-    from == nothing && error("The partition has been deleted.")
+    from === nothing && error("The partition has been deleted.")
     to = _pos_of_partition_end(pcsc, partition)
     if value != zero(T)
         _insert!(pcsc, value, key, from, to)
@@ -330,10 +330,17 @@ function _dynamicsparse(
 ) where {K,L,T}
     !always_use_map && error("TODO issue #2.")
 
-    p = sortperm(collect(zip(J,I))) # Columns first
-    permute!(I, p)
-    permute!(J, p)
-    permute!(V, p)
+    println("\e[1;42m *** _dynamicsparse *** \e[00m")
+    @time e = collect(zip(J,I))
+    @time p = sortperm(e, alg=QuickSort) # Columns first
+    #permute!(I, p)
+    @time @inbounds I = I[p]
+    #permute!(J, p)
+    @time @inbounds J = J[p]
+    #permute!(V, p)
+    @time @inbounds V = V[p]
+
+    println("\e[1;43m *** end _dynamicsparse *** \e[00m")
 
     write_pos = 1
     read_pos = 1

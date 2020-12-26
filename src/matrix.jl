@@ -79,10 +79,11 @@ function addrow!(
 end
 
 function closefillmode!(matrix::DynamicSparseMatrix{K,L,T}) where {K,L,T}
+    println("\e[31m ******** \e[00m")
     I, J, V = get_rowids_colids_vals(matrix.buffer)
     matrix.fillmode = false
     matrix.buffer = nothing
-    matrix.colmajor = dynamicsparsecolmajor(I,J,V)
-    matrix.rowmajor = dynamicsparsecolmajor(J,I,V)
+    @time matrix.colmajor = dynamicsparsecolmajor(I,J,V)
+    @time matrix.rowmajor = dynamicsparsecolmajor(J,I,V)
     return true
 end
