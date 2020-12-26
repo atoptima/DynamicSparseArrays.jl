@@ -434,5 +434,18 @@ function dynsparsematrix_fill_mode()
     for i in axes(values, 1), j in axes(values, 2)
         @test matrix[i, j] == values[i, j]
     end
+
+    ## Second test (TODO : move into performances)
+    row = rand(1:100_000, 10_000_000)
+    col = rand(1:100_000, 10_000_000)
+    values =  rand(1:100_000, 10_000_000)
+
+    matrix = dynamicsparse(Int, Int, Int)
+
+    for i in 1:10_000_000
+        matrix[row[i], col[i]] = values[i]
+    end
+    @time closefillmode!(matrix)
+
     return
 end
