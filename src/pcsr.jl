@@ -22,30 +22,38 @@ semaphore_key(::Type{K}) where {K<:Integer} = zero(K)
 
 function PackedCSC(
     row_keys::Vector{Vector{L}}, values::Vector{Vector{T}},
-    combine::Function = +
+    combine::Function = +; apply_combine = true
 ) where {L,T <: Real}
     nb_semaphores = length(row_keys)
+    nb_values = sum(length(values[i]) for i in 1:nb_semaphores)
     @assert nb_semaphores == length(values)
     applicable(semaphore_key, L) || error("method `semaphore_key` not implemented for type $(L).")
-    pcsc_keys = Vector{L}()
-    pcsc_values = Vector{T}()
+    pcsc_keys = Vector{L}(undef, nb_values + nb_semaphores)
+    pcsc_values = Vector{T}(undef, nb_values + nb_semaphores)
+    i = 1
     for semaphore_id in 1:nb_semaphores
         # Insert the semaphore
-        push!(pcsc_keys, semaphore_key(L))
-        push!(pcsc_values, T(semaphore_id)) # This is why T <: Real
+        @inbounds pcsc_keys[i] = semaphore_key(L)
+        @inbounds pcsc_values[i] = T(semaphore_id) # This is why T <: Real
+        i += 1
         # Create the column
-        nkeys = row_keys[semaphore_id]
-        nvalues = values[semaphore_id]
-        _prepare_keys_vals!(nkeys, nvalues, combine)
-        push!(pcsc_keys, nkeys...)
-        push!(pcsc_values, nvalues...)
+        @inbounds nkeys = row_keys[semaphore_id]
+        @inbounds nvalues = values[semaphore_id]
+        apply_combine && _prepare_keys_vals!(nkeys, nvalues, combine)
+        for j in 1:length(nkeys)
+            @inbounds pcsc_keys[i] = nkeys[j]
+            @inbounds pcsc_values[i] = nvalues[j]
+            i += 1
+        end
     end
+    resize!(pcsc_keys, i - 1)
+    resize!(pcsc_values, i - 1)
     pma = PackedMemoryArray(pcsc_keys, pcsc_values, sort = false)
-    semaphores = Vector{Union{Int, Nothing}}(zeros(Int, nb_semaphores))
+    semaphores = Vector{Union{Int, Nothing}}(undef, nb_semaphores)
     for (pos, pair) in enumerate(pma.array)
         if pair !== nothing && pair[1] == semaphore_key(L)
             id = Int(pair[2])
-            semaphores[id] = pos
+            @inbounds semaphores[id] = pos
         end
     end
     return PackedCSC(nb_semaphores, semaphores, pma)
@@ -61,17 +69,10 @@ MappedPackedCSC(mpcsc::MappedPackedCSC) = deepcopy(mpcsc)
 
 function MappedPackedCSC(
     row_keys::Vector{Vector{K}}, column_keys::Vector{L},
-    values::Vector{Vector{T}}, combine::Function = +
+    values::Vector{Vector{T}}, combine::Function = +; apply_combine = true
 ) where {K,L,T <: Real}
-    pcsc = PackedCSC(row_keys, values, combine)
+    pcsc = PackedCSC(row_keys, values, combine, apply_combine = apply_combine)
     col_keys = Vector{Union{Nothing,L}}(column_keys)
-    return MappedPackedCSC(col_keys, pcsc)
-end
-
-# TODO : remove
-function MappedPackedCSC(::Type{K}, ::Type{L}, ::Type{T}) where {K,L,T}
-    pcsc = PackedCSC(K, T)
-    col_keys = Vector{Union{Nothing, L}}()
     return MappedPackedCSC(col_keys, pcsc)
 end
 
@@ -324,7 +325,7 @@ function Base.setindex!(mpcsc::MappedPackedCSC{L,K,T}, value, row::L, col::K) wh
     return setindex!(mpcsc, T(value), row, col)
 end
 
-## Dynamic sparse matrix builder (exported)
+## Dynamic sparse matrix builder
 function _dynamicsparse(
     I::Vector{K}, J::Vector{L}, V::Vector{T}, combine, always_use_map
 ) where {K,L,T}
@@ -394,12 +395,12 @@ function _dynamicsparse(
     end
 
     if always_use_map
-        return MappedPackedCSC(row_keys, col_keys, values, combine)
+        return MappedPackedCSC(row_keys, col_keys, values, combine, apply_combine = false)
     else
         # TODO : Check that we use integer keys for columns, otherwise we have to use a map
         # Add empty columns in the rows_keys vector
         # We can put all those things in a
-        return PackedCSC(rows_keys, values)
+        return PackedCSC(rows_keys, values, apply_combine = false)
     end
 end
 

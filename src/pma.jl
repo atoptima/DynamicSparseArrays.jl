@@ -128,7 +128,7 @@ function dynamicsparsevec(I::Vector{K}, V::Vector{T}, combine::Function) where {
         throw(ArgumentError("cannot apply method zero over $(T)"))
     length(I) == length(V) ||
         throw(ArgumentError("keys & nonzeros vectors must have same length."))
-    return _dynamicsparsevec(Vector(I), Vector(V), combine)
+    return _dynamicsparsevec(I, V, combine)
 end
 
 dynamicsparsevec(I,V) = dynamicsparsevec(I,V,+)
