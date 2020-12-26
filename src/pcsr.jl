@@ -330,17 +330,14 @@ function _dynamicsparse(
 ) where {K,L,T}
     !always_use_map && error("TODO issue #2.")
 
-    println("\e[1;42m *** _dynamicsparse *** \e[00m")
-    @time e = collect(zip(J,I))
-    @time p = sortperm(e, alg=QuickSort) # Columns first
-    #permute!(I, p)
-    @time @inbounds I = I[p]
-    #permute!(J, p)
-    @time @inbounds J = J[p]
-    #permute!(V, p)
-    @time @inbounds V = V[p]
+    p = sortperm(collect(zip(J,I)), alg=QuickSort) # Columns first
+    @inbounds I = I[p]
+    @inbounds J = J[p]
+    @inbounds V = V[p]
 
-    println("\e[1;43m *** end _dynamicsparse *** \e[00m")
+    nb_cols = 1
+    nb_rows_in_col = Int[]
+    push!(nb_rows_in_col, 1)
 
     write_pos = 1
     read_pos = 1
@@ -348,16 +345,22 @@ function _dynamicsparse(
     prev_j = J[read_pos]
     while read_pos < length(I)
         read_pos += 1
-        cur_i = I[read_pos]
-        cur_j = J[read_pos]
+        @inbounds cur_i = I[read_pos]
+        @inbounds cur_j = J[read_pos]
         if prev_i == cur_i && prev_j == cur_j
-            V[write_pos] = combine(V[write_pos], V[read_pos])
+           @inbounds V[write_pos] = combine(V[write_pos], V[read_pos])
         else
             write_pos += 1
             if write_pos < read_pos
-                I[write_pos] = cur_i
-                J[write_pos] = cur_j
-                V[write_pos] = V[read_pos]
+                @inbounds I[write_pos] = cur_i
+                @inbounds J[write_pos] = cur_j
+                @inbounds V[write_pos] = V[read_pos]
+            end
+            if cur_j != prev_j
+                nb_cols += 1
+                push!(nb_rows_in_col, 1)
+            elseif cur_i != prev_i
+                nb_rows_in_col[end] += 1
             end
             prev_i = cur_i
             prev_j = cur_j
@@ -367,21 +370,26 @@ function _dynamicsparse(
     resize!(J, write_pos)
     resize!(V, write_pos)
 
-    col_keys = Vector{L}()
-    row_keys = Vector{Vector{K}}()
-    values = Vector{Vector{T}}()
+    col_keys = Vector{L}(undef, nb_cols)
+    row_keys = Vector{Vector{K}}(undef, nb_cols)
+    values = Vector{Vector{T}}(undef, nb_cols)
     i = 1
     prev_col = J[1]
+    col_pos = 0
+    row_pos = 0
     while i <= length(I)
-        cur_col = J[i]
+        @inbounds cur_col = J[i]
         if prev_col != cur_col || i == 1
-            push!(col_keys, cur_col)
-            push!(row_keys, Vector{K}())
-            push!(values, Vector{K}())
+            col_pos += 1
+            row_pos = 1
+            @inbounds col_keys[col_pos] = cur_col
+            @inbounds row_keys[col_pos] = Vector{K}(undef, nb_rows_in_col[col_pos])
+            @inbounds values[col_pos] = Vector{K}(undef, nb_rows_in_col[col_pos])
         end
-        push!(row_keys[end], I[i])
-        push!(values[end], V[i])
+        @inbounds row_keys[col_pos][row_pos] = I[i]
+        @inbounds values[col_pos][row_pos] = V[i]
         prev_col = cur_col
+        row_pos += 1
         i += 1
     end
 
