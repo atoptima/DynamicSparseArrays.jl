@@ -34,8 +34,8 @@ function PackedCSC(
         push!(pcsc_keys, semaphore_key(L))
         push!(pcsc_values, T(semaphore_id)) # This is why T <: Real
         # Create the column
-        nkeys = Vector(row_keys[semaphore_id])
-        nvalues = Vector(values[semaphore_id])
+        nkeys = row_keys[semaphore_id]
+        nvalues = values[semaphore_id]
         _prepare_keys_vals!(nkeys, nvalues, combine)
         push!(pcsc_keys, nkeys...)
         push!(pcsc_values, nvalues...)
@@ -43,7 +43,7 @@ function PackedCSC(
     pma = PackedMemoryArray(pcsc_keys, pcsc_values, sort = false)
     semaphores = Vector{Union{Int, Nothing}}(zeros(Int, nb_semaphores))
     for (pos, pair) in enumerate(pma.array)
-        if pair != nothing && pair[1] == semaphore_key(L)
+        if pair !== nothing && pair[1] == semaphore_key(L)
             id = Int(pair[2])
             semaphores[id] = pos
         end
@@ -415,9 +415,7 @@ function dynamicsparsecolmajor(
         throw(ArgumentError("vectors cannot be empty."))
     applicable(<, L, L) ||
         throw(ArgumentError("set of keys must be totally ordered (define method Base.:< for type $L)."))
-    return _dynamicsparse(
-        Vector(I), Vector(J), Vector(V), combine, always_use_map
-    )
+    return _dynamicsparse(I, J, V, combine, always_use_map)
 end
 
 # Show
