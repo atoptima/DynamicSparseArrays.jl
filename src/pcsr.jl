@@ -71,7 +71,7 @@ function MappedPackedCSC(
     row_keys::Vector{Vector{K}}, column_keys::Vector{L},
     values::Vector{Vector{T}}, combine::Function = +; apply_combine = true
 ) where {K,L,T <: Real}
-    pcsc = PackedCSC(row_keys, values, combine, apply_combine = apply_combine)
+    pcsc = PackedCSC(row_keys, values, combine; apply_combine = apply_combine)
     col_keys = Vector{Union{Nothing,L}}(column_keys)
     return MappedPackedCSC(col_keys, pcsc)
 end
@@ -395,12 +395,12 @@ function _dynamicsparse(
     end
 
     if always_use_map
-        return MappedPackedCSC(row_keys, col_keys, values, combine, apply_combine = false)
+        return MappedPackedCSC(row_keys, col_keys, values, combine; apply_combine = false)
     else
         # TODO : Check that we use integer keys for columns, otherwise we have to use a map
         # Add empty columns in the rows_keys vector
         # We can put all those things in a
-        return PackedCSC(rows_keys, values, apply_combine = false)
+        return PackedCSC(rows_keys, values, combine; apply_combine = false)
     end
 end
 

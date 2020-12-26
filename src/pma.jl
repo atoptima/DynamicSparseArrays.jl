@@ -34,7 +34,7 @@ function _array(keys::Vector{K}, values::Vector{T}, capacity) where {K,T}
     array = Elements{K,T}(nothing, capacity)
     nb_elements = length(values)
     for i in 1:nb_elements
-        array[i] = (keys[i], values[i])
+        @inbounds array[i] = (keys[i], values[i])
     end
     return array
 end
@@ -128,7 +128,7 @@ function dynamicsparsevec(I::Vector{K}, V::Vector{T}, combine::Function) where {
         throw(ArgumentError("cannot apply method zero over $(T)"))
     length(I) == length(V) ||
         throw(ArgumentError("keys & nonzeros vectors must have same length."))
-    return _dynamicsparsevec(I, V, combine)
+    return _dynamicsparsevec(Vector(I), Vector(V), combine)
 end
 
 dynamicsparsevec(I,V) = dynamicsparsevec(I,V,+)
