@@ -433,32 +433,48 @@ function dynsparsematrix_fill_mode()
 
     for i in axes(values, 1), j in axes(values, 2)
         @test matrix[i, j] == values[i, j]
+        @test matrix.colmajor[i, j] == values[i, j]
+        @test matrix.rowmajor[j, i] == values[i, j]
     end
 
-    ## Second test (TODO : move into performances)
-    row = rand(1:100_000, 10_000_000)
-    col = rand(1:100_000, 10_000_000)
-    values =  rand(1:100_000, 10_000_000)
+    ## Second test
+    row = rand(rng, 1:1000, 10_000)
+    col = rand(rng, 1:1000, 10_000)
+    values =  rand(rng, 1:100_000, 10_000)
 
     matrix = dynamicsparse(Int, Int, Int)
 
-    for i in 1:10_000_000
+    matrix2 = sparse(row, col, values, 1000, 1000)
+
+    for i in 1:10000
         matrix[row[i], col[i]] = values[i]
     end
-    @time closefillmode!(matrix)
+    closefillmode!(matrix)
 
-
-    ## Third test (TODO : move into performances)
-    row = rand(1:100_000, 10_000_000)
-    col = rand(1:100_000, 10_000_000)
-    values =  rand(1:100_000, 10_000_000)
-
-    matrix = dynamicsparse(Int, Int, Int, fill_mode = false)
-
-    @time begin
-    for i in 1:10_000_000
-        matrix[row[i], col[i]] = values[i]
+    for i in 1:100, j in 1:1000
+        @test matrix[i, j] == matrix2[i, j]
+        @test matrix.colmajor[i, j] == matrix2[i, j]
+        @test matrix.rowmajor[j, i] == matrix2[i, j] 
     end
+
+    ## Third test
+    row = rand(rng, 1:1000, 10_000)
+    col = rand(rng, 1:1000, 10_000)
+    values =  rand(rng, 1:100_000, 10_000)
+
+    matrix = dynamicsparse(Int, Int, Int; fill_mode = false)
+
+    matrix2 = sparse(Int[], Int[], Int[], 1000, 1000)
+
+    for i in 1:10000
+        matrix[row[i], col[i]] = values[i]
+        matrix2[row[i], col[i]] = values[i] # combine works only if fill_mode is enable
+    end
+
+    for i in 1:1000, j in 1:1000
+        @test matrix[i, j] == matrix2[i, j]
+        @test matrix.colmajor[i, j] == matrix2[i, j]
+        @test matrix.rowmajor[j, i] == matrix2[i, j] 
     end
 
     return
