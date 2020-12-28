@@ -37,8 +37,8 @@ function PackedCSC(
         @inbounds pcsc_values[i] = T(semaphore_id) # This is why T <: Real
         i += 1
         # Create the column
-        @inbounds nkeys = row_keys[semaphore_id]
-        @inbounds nvalues = values[semaphore_id]
+        @inbounds nkeys = Vector(row_keys[semaphore_id])
+        @inbounds nvalues = Vector(values[semaphore_id])
         apply_combine && _prepare_keys_vals!(nkeys, nvalues, combine)
         for j in 1:length(nkeys)
             @inbounds pcsc_keys[i] = nkeys[j]
