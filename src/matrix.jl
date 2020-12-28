@@ -18,7 +18,7 @@ function dynamicsparse(::Type{K}, ::Type{L}, ::Type{T}; fill_mode = true) where 
         )
     else
         DynamicSparseMatrix(
-            false, nothing, dynamicsparsecolmajor(K,L,T), dynamicsparsecolmajor(K,L,T)
+            false, nothing, dynamicsparsecolmajor(K,L,T), dynamicsparsecolmajor(L,K,T)
         )
     end
 end

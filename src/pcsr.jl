@@ -418,10 +418,9 @@ function dynamicsparsecolmajor(
         throw(ArgumentError("cannot apply method zero over $(T)."))
     length(I) == length(J) == length(V) ||
         throw(ArgumentError("rows, columns, and nonzeros do not have same length."))
-    length(I) > 0 ||
-        throw(ArgumentError("vectors cannot be empty."))
     applicable(<, L, L) ||
         throw(ArgumentError("set of keys must be totally ordered (define method Base.:< for type $L)."))
+    length(I) > 0 || return dynamicsparsecolmajor(K,L,T)
     return _dynamicsparse(Vector(I), Vector(J), Vector(V), combine, always_use_map)
 end
 
