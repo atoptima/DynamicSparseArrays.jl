@@ -401,3 +401,81 @@ function dynsparsematrix_deletions()
     end
     return
 end
+
+function dynsparsematrix_fill_mode()
+    matrix = dynamicsparse(Int, Int, Int)
+
+    values =  [ 1 0 0 2 0 7 0 0 0 9 1 2;
+                0 3 0 0 1 1 0 0 0 1 0 2;
+                0 0 0 1 1 2 0 0 1 2 0 0;
+                0 0 0 0 0 0 0 1 0 0 0 1;
+                1 2 0 0 0 0 0 0 1 0 0 0 ]
+
+    for i in axes(values, 1)
+        colids = findall(id -> id != 0, values[i, :])
+        addrow!(matrix, i, colids, values[i, colids])
+    end
+
+    for i in axes(values, 1)
+        row = matrix[i, :]
+        for j in axes(values, 2)
+            @test row[j] == values[i,j]
+        end
+    end
+
+    matrix[1, 2] = 2
+    matrix[1, 1] = 1
+
+    values[1, 2] = 2
+    values[1, 1] += 1
+
+    closefillmode!(matrix)
+
+    for i in axes(values, 1), j in axes(values, 2)
+        @test matrix[i, j] == values[i, j]
+        @test matrix.colmajor[i, j] == values[i, j]
+        @test matrix.rowmajor[j, i] == values[i, j]
+    end
+
+    ## Second test
+    row = rand(rng, 1:1000, 10_000)
+    col = rand(rng, 1:1000, 10_000)
+    values =  rand(rng, 1:100_000, 10_000)
+
+    matrix = dynamicsparse(Int, Int, Int)
+
+    matrix2 = sparse(row, col, values, 1000, 1000)
+
+    for i in 1:10000
+        matrix[row[i], col[i]] = values[i]
+    end
+    closefillmode!(matrix)
+
+    for i in 1:100, j in 1:1000
+        @test matrix[i, j] == matrix2[i, j]
+        @test matrix.colmajor[i, j] == matrix2[i, j]
+        @test matrix.rowmajor[j, i] == matrix2[i, j] 
+    end
+
+    ## Third test
+    row = rand(rng, 1:1000, 10_000)
+    col = rand(rng, 1:1000, 10_000)
+    values =  rand(rng, 1:100_000, 10_000)
+
+    matrix = dynamicsparse(Int, Int, Int; fill_mode = false)
+
+    matrix2 = sparse(Int[], Int[], Int[], 1000, 1000)
+
+    for i in 1:10000
+        matrix[row[i], col[i]] = values[i]
+        matrix2[row[i], col[i]] = values[i] # combine works only if fill_mode is enable
+    end
+
+    for i in 1:1000, j in 1:1000
+        @test matrix[i, j] == matrix2[i, j]
+        @test matrix.colmajor[i, j] == matrix2[i, j]
+        @test matrix.rowmajor[j, i] == matrix2[i, j] 
+    end
+
+    return
+end

@@ -1,4 +1,4 @@
-using DynamicSparseArrays, Test, Random
+using DynamicSparseArrays, Test, Random, SparseArrays
 
 rng = MersenneTwister(1234123)
 
