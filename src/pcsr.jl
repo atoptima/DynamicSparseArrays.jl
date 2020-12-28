@@ -76,6 +76,12 @@ function MappedPackedCSC(
     return MappedPackedCSC(col_keys, pcsc)
 end
 
+function MappedPackedCSC(::Type{K}, ::Type{L}, ::Type{T}) where {K,L,T}
+    pcsc = PackedCSC(K, T)
+    col_keys = Vector{Union{Nothing, L}}(undef, 0)
+    return MappedPackedCSC(col_keys, pcsc)
+end
+
 function _even_rebalance!(pcsc::PackedCSC, window_start, window_end, nbcells)
     capacity = window_end - window_start + 1
     if capacity == pcsc.pma.segment_capacity
@@ -417,6 +423,10 @@ function dynamicsparsecolmajor(
     applicable(<, L, L) ||
         throw(ArgumentError("set of keys must be totally ordered (define method Base.:< for type $L)."))
     return _dynamicsparse(I, J, V, combine, always_use_map)
+end
+
+function dynamicsparsecolmajor(::Type{K}, ::Type{L}, ::Type{T}) where {K,L,T}
+    return MappedPackedCSC(K,L,T)
 end
 
 # Show

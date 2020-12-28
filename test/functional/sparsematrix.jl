@@ -447,5 +447,19 @@ function dynsparsematrix_fill_mode()
     end
     @time closefillmode!(matrix)
 
+
+    ## Third test (TODO : move into performances)
+    row = rand(1:100_000, 10_000_000)
+    col = rand(1:100_000, 10_000_000)
+    values =  rand(1:100_000, 10_000_000)
+
+    matrix = dynamicsparse(Int, Int, Int, fill_mode = false)
+
+    @time begin
+    for i in 1:10_000_000
+        matrix[row[i], col[i]] = values[i]
+    end
+    end
+
     return
 end

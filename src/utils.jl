@@ -54,8 +54,3 @@ function _nbcells(array::Elements, from::Int, to::Int)
     end
     return nbcells
 end
-
-# fsortperm
-function fsortperm(array)
-    
-end

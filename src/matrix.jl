@@ -11,10 +11,16 @@ function dynamicsparse(I::Vector{K}, J::Vector{L}, V::Vector{T}) where {K,L,T}
     )
 end
 
-function dynamicsparse(::Type{K}, ::Type{L}, ::Type{T}) where {K,L,T}
-    return DynamicSparseMatrix(
-        true, buffer(K,L,T), nothing, nothing
-    )
+function dynamicsparse(::Type{K}, ::Type{L}, ::Type{T}; fill_mode = true) where {K,L,T}
+    return if fill_mode
+        DynamicSparseMatrix(
+            true, buffer(K,L,T), nothing, nothing
+        )
+    else
+        DynamicSparseMatrix(
+            false, nothing, dynamicsparsecolmajor(K,L,T), dynamicsparsecolmajor(K,L,T)
+        )
+    end
 end
 
 function Base.setindex!(m::DynamicSparseMatrix{K,L,T}, val, row::K, col::L) where {K,L,T}
