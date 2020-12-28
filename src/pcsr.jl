@@ -422,7 +422,7 @@ function dynamicsparsecolmajor(
         throw(ArgumentError("vectors cannot be empty."))
     applicable(<, L, L) ||
         throw(ArgumentError("set of keys must be totally ordered (define method Base.:< for type $L)."))
-    return _dynamicsparse(I, J, V, combine, always_use_map)
+    return _dynamicsparse(Vector(I), Vector(J), Vector(V), combine, always_use_map)
 end
 
 function dynamicsparsecolmajor(::Type{K}, ::Type{L}, ::Type{T}) where {K,L,T}
