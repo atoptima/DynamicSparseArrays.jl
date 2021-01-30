@@ -85,6 +85,7 @@ function addrow!(
 end
 
 function closefillmode!(matrix::DynamicSparseMatrix{K,L,T}) where {K,L,T}
+    matrix.fillmode || error("Cannot close fill mode because matrix is not in fill mode.")
     I, J, V = get_rowids_colids_vals(matrix.buffer)
     matrix.fillmode = false
     matrix.buffer = nothing
