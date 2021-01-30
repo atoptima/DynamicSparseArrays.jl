@@ -477,5 +477,11 @@ function dynsparsematrix_fill_mode()
         @test matrix.rowmajor[j, i] == matrix2[i, j] 
     end
 
+    ## Fourth test : Close fill mode of empty matrix
+    matrix4 = dynamicsparse(Int, Int, Int)
+    closefillmode!(matrix4)
+    @test length(matrix4) == 0
+    @test matrix4[1,1] == 0
+
     return
 end
