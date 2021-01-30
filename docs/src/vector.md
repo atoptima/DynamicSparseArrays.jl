@@ -1,10 +1,6 @@
 # Sparse Vector
 
-todo 
-
----
-
-Mode details in following papers :
+Implementation from :
 
 > BENDER, Michael A. et HU, Haodong. An adaptive packed-memory array. ACM Transactions on Database Systems (TODS), 2007, vol. 32, no 4, p. 26.
 
@@ -13,7 +9,9 @@ Mode details in following papers :
 > ITAI, Alon, KONHEIM, Alan G., et RODEH, Michael. A sparse table implementation of priority queues. In : International Colloquium on Automata, Languages, and Programming. Springer, Berlin, Heidelberg, 1981. p. 417-431.
 
 
-One-phase rebalance & Partially dearmotized PMA :
+
+
+One-phase rebalance & Partially dearmotized PMA (for later?) :
 
 > HU, Haodong. Cache-Oblivious Data Structures forMassive Data Sets.
 PhD Dissertation, 2007, p. 102.
