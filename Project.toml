@@ -4,7 +4,7 @@ authors = ["Guillaume Marques <guillaume.marques@protonmail.com>"]
 version = "0.3.0"
 
 [compat]
-julia = "1"
+julia = "≥ 1.2"
 
 [extras]
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
