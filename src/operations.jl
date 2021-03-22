@@ -2,17 +2,17 @@ struct Transposed{T}
     array::T
 end
 
-Base.transpose(M::DynamicSparseMatrix) = Transposed(M)
+Base.transpose(matrix::DynamicSparseMatrix) = Transposed(matrix)
 
-function Base.:(*)(M::DynamicSparseMatrix{K,L,T}, v::PackedMemoryArray{L,T}) where {K,L,T}
-    return _mult(M.colmajor, v)
+function Base.:(*)(matrix::DynamicSparseMatrix{K,L,T}, v::PackedMemoryArray{L,T}) where {K,L,T}
+    return _mult(matrix.colmajor, v)
 end
 
-function Base.:(*)(M::Transposed{DynamicSparseMatrix{K,L,T}}, v::PackedMemoryArray{K,T}) where {K,L,T}
-    return _mult(M.array.rowmajor, v)
+function Base.:(*)(matrix::Transposed{DynamicSparseMatrix{K,L,T}}, v::PackedMemoryArray{K,T}) where {K,L,T}
+    return _mult(matrix.array.rowmajor, v)
 end
 
-function _mult(M::MappedPackedCSC{K,L,T}, v::PackedMemoryArray{L,T}) where {K,L,T}
+function _mult(matrix::MappedPackedCSC{K,L,T}, v::PackedMemoryArray{L,T}) where {K,L,T}
     result = Dict{L, T}()
 
     col_key_pos::Int = 1
@@ -26,31 +26,31 @@ function _mult(M::MappedPackedCSC{K,L,T}, v::PackedMemoryArray{L,T}) where {K,L,
         entry = v.array[vec_pos]
         if entry !== nothing
             vec_row_id, val = entry
-            while col_key_pos <= length(M.col_keys) && M.col_keys[col_key_pos] < vec_row_id
+            while col_key_pos <= length(matrix.col_keys) && matrix.col_keys[col_key_pos] < vec_row_id
                 col_key_pos += 1
             end
 
-            if col_key_pos > length(M.col_keys)
+            if col_key_pos > length(matrix.col_keys)
                 break
             end
 
-            if M.col_keys[col_key_pos] != vec_row_id
+            if matrix.col_keys[col_key_pos] != vec_row_id
                 continue
             end
 
             next_col_key_pos = col_key_pos + 1
-            while next_col_key_pos <= length(M.col_keys) && M.col_keys[next_col_key_pos] === nothing
+            while next_col_key_pos <= length(matrix.col_keys) && matrix.col_keys[next_col_key_pos] === nothing
                 next_col_key_pos += 1
             end
 
-            matrix_row_start = M.pcsc.semaphores[col_key_pos] + 1
-            matrix_row_end = length(M.pcsc.pma.array)
-            if next_col_key_pos <= length(M.col_keys)
-                matrix_row_end = M.pcsc.semaphores[next_col_key_pos] - 1
+            matrix_row_start = matrix.pcsc.semaphores[col_key_pos] + 1
+            matrix_row_end = length(matrix.pcsc.pma.array)
+            if next_col_key_pos <= length(matrix.col_keys)
+                matrix_row_end = matrix.pcsc.semaphores[next_col_key_pos] - 1
             end
 
             for matrix_row_pos in matrix_row_start:matrix_row_end
-                entry = M.pcsc.pma.array[matrix_row_pos]
+                entry = matrix.pcsc.pma.array[matrix_row_pos]
                 if entry !== nothing
                     matrix_row_id, coeff = entry
                     result[matrix_row_id] = get(result, matrix_row_id, 0.0) + val * coeff

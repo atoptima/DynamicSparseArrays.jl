@@ -96,6 +96,17 @@ function test_spmv_4()
     @test get(result, 4, 0.0) == 1
     @test get(result, 5, 0.0) == 0
     @test get(result, 6, 0.0) == 1
+
+    deleterow!(matrix, 4)
+
+    result = matrix * vec
+
+    @test get(result, 1, 0.0) == 1
+    @test get(result, 2, 0.0) == 0
+    @test get(result, 3, 0.0) == 0
+    @test get(result, 4, 0.0) == 0
+    @test get(result, 5, 0.0) == 0
+    @test get(result, 6, 0.0) == 1
     return
 end
 
