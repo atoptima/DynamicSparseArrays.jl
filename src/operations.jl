@@ -26,10 +26,14 @@ function _mult(M::MappedPackedCSC{K,L,T}, v::PackedMemoryArray{L,T}) where {K,L,
         entry = v.array[vec_pos]
         if entry !== nothing
             row_id, val = entry
-            while col_key_pos <= length(M.col_keys) && M.col_keys[col_key_pos] != row_id
+            while col_key_pos <= length(M.col_keys) && M.col_keys[col_key_pos] < row_id
                 col_key_pos += 1
             end
-            (col_key_pos > length(M.col_keys)) && break
+
+            if col_key_pos > length(M.col_keys)
+                break
+            end
+            
             next_col_key_pos = col_key_pos + 1
             while next_col_key_pos <= length(M.col_keys) && M.col_keys[next_col_key_pos] === nothing
                 next_col_key_pos += 1
