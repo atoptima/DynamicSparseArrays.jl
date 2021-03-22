@@ -13,7 +13,7 @@ function Base.:(*)(matrix::Transposed{DynamicSparseMatrix{K,L,T}}, v::PackedMemo
 end
 
 function _mult(matrix::MappedPackedCSC{K,L,T}, v::PackedMemoryArray{L,T}) where {K,L,T}
-    result = Dict{L, T}()
+    result = Dict{K,T}()
 
     col_key_pos::Int = 1
     next_col_key_pos::Int = 2
