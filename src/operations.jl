@@ -18,38 +18,42 @@ function _mult(M::MappedPackedCSC{K,L,T}, v::PackedMemoryArray{L,T}) where {K,L,
     col_key_pos::Int = 1
     next_col_key_pos::Int = 2
 
-    row_start = 0
-    row_end = 0
-    row_pos = 0
+    matrix_row_start::Int = 0
+    matrix_row_end::Int = 0
+    matrix_row_pos::Int = 0
 
     for vec_pos in 1:length(v.array)
         entry = v.array[vec_pos]
         if entry !== nothing
-            row_id, val = entry
-            while col_key_pos <= length(M.col_keys) && M.col_keys[col_key_pos] < row_id
+            vec_row_id, val = entry
+            while col_key_pos <= length(M.col_keys) && M.col_keys[col_key_pos] < vec_row_id
                 col_key_pos += 1
             end
 
             if col_key_pos > length(M.col_keys)
                 break
             end
-            
+
+            if M.col_keys[col_key_pos] != vec_row_id
+                continue
+            end
+
             next_col_key_pos = col_key_pos + 1
             while next_col_key_pos <= length(M.col_keys) && M.col_keys[next_col_key_pos] === nothing
                 next_col_key_pos += 1
             end
 
-            row_start = M.pcsc.semaphores[col_key_pos] + 1
-            row_end = length(M.pcsc.pma.array)
+            matrix_row_start = M.pcsc.semaphores[col_key_pos] + 1
+            matrix_row_end = length(M.pcsc.pma.array)
             if next_col_key_pos <= length(M.col_keys)
-                row_end = M.pcsc.semaphores[next_col_key_pos] - 1
+                matrix_row_end = M.pcsc.semaphores[next_col_key_pos] - 1
             end
 
-            for row_pos in row_start:row_end
-                entry = M.pcsc.pma.array[row_pos]
+            for matrix_row_pos in matrix_row_start:matrix_row_end
+                entry = M.pcsc.pma.array[matrix_row_pos]
                 if entry !== nothing
-                    matrix_col_id, coeff = entry
-                    result[matrix_col_id] = get(result, matrix_col_id, 0.0) + val * coeff
+                    matrix_row_id, coeff = entry
+                    result[matrix_row_id] = get(result, matrix_row_id, 0.0) + val * coeff
                 end
             end
             col_key_pos = next_col_key_pos
