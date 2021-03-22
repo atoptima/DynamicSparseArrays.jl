@@ -6,7 +6,7 @@ position `to - 1`.
 """
 function _movecellstoright!(array::Elements{K,T}, from::Int, to::Int, semaphores) where {K,T}
     len = length(array)
-    array[to] == nothing || throw(ArgumentError("The cell erased by the movement must contain nothing."))
+    array[to] === nothing || throw(ArgumentError("The cell erased by the movement must contain nothing."))
     1 <= from <= len || throw(BoundsError("cannot access $(len)-elements array at index [$(from)]."))
     1 <= to <= len || throw(BoundsError("cannot access $(len)-elements array at index [$(to)]."))
     _moverightloop!(array, from, to, semaphores)
@@ -49,7 +49,7 @@ position `to + 1`.
 """
 function _movecellstoleft!(array::Elements{K,T}, from::Int, to::Int, semaphores) where {K,T}
     len = length(array)
-    array[to] == nothing || throw(ArgumentError("The cell erased by the movement must contain nothing."))
+    array[to] === nothing || throw(ArgumentError("The cell erased by the movement must contain nothing."))
     1 <= from <= len || throw(BoundsError("cannot access $(len)-elements array at index [$(from)]."))
     1 <= to <= len || throw(BoundsError("cannot access $(len)-elements array at index [$(to)]."))
     _moveleftloop!(array, from, to, semaphores)
@@ -72,7 +72,7 @@ function _moveleftloop!(array::Elements{K,T}, from, to, semaphores::Vector) wher
     @inbounds while i < from
         i += 1
         cell = array[i]
-        if cell != nothing
+        if cell !== nothing
             (key, val) = cell
             if key == sem_key
                 semaphores[Int(val)] = i-1

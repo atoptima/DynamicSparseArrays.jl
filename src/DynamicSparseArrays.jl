@@ -28,4 +28,6 @@ include("buffer.jl")
 
 include("matrix.jl")
 
+include("operations.jl")
+
 end# module

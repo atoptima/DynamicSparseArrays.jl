@@ -4,6 +4,7 @@ include("writes.jl")
 include("rebalance.jl")
 include("comparison.jl")
 include("views.jl")
+include("spmv.jl")
 
 function unit_tests()
     @testset "Moves - unit tests" begin
@@ -44,6 +45,10 @@ function unit_tests()
 
     @testset "Views" begin
         test_views()
+    end
+
+    @testset "Sparse Matrix Vector Multiplication" begin
+        test_spmv()
     end
     return
 end
