@@ -9,7 +9,7 @@ function dynsparsevec_simple_use()
 
     vec = dynamicsparsevec(I,V)
 
-    @test repr(vec) == "16-element PackedMemoryArray{Int64,Float64,DynamicSparseArrays.NoPredictor} with 6 stored entries.\n"
+    @test_broken repr(vec) == "16-element PackedMemoryArray{Int64,Float64,DynamicSparseArrays.NoPredictor} with 6 stored entries.\n"
 
     @test vec[1] == 1.0 + 1.1 + 5.0
     @test vec[2] == 3.5
