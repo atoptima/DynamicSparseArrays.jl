@@ -269,6 +269,18 @@ function Base.show(io::IO, pma::PackedMemoryArray{K,T,P}) where {K,T,P}
     return
 end
 
+function Base.filter(f::Function, pma::DynamicSparseArrays.PackedMemoryArray{K,T,P}) where {K,T,P}
+    ids = Vector{K}()
+    vals = Vector{T}()
+    for e in pma
+        if f(e)
+            push!(ids, e[1])
+            push!(vals, e[2])
+        end
+    end
+    return DynamicSparseArrays.dynamicsparsevec(ids, vals)
+end
+
 function _arrays_equal(array1::Elements, array2::Elements)
     i = 1
     j = 1
