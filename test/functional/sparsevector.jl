@@ -76,6 +76,13 @@ function dynsparsevec_simple_use()
     return
 end
 
+function filter_pma()
+    pma = PackedMemoryArray(Vector([(1,2.0), (2,3.0),(3,4.0)]))
+    even_ids(n) = n[1] % 2 == 0
+
+    @test filter(even_ids, pma) == PackedMemoryArray(Vector([(2,3.0)]))
+end
+
 function fill(vec, kv)
     n = 0
     for (k, v) in kv
