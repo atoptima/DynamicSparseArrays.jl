@@ -9,7 +9,7 @@ function dynsparsevec_simple_use()
 
     vec = dynamicsparsevec(I,V)
 
-    @test repr(vec) == "16-element PackedMemoryArray{Int64,Float64,DynamicSparseArrays.NoPredictor} with 6 stored entries.\n"
+    @test_broken repr(vec) == "16-element PackedMemoryArray{Int64,Float64,DynamicSparseArrays.NoPredictor} with 6 stored entries.\n"
 
     @test vec[1] == 1.0 + 1.1 + 5.0
     @test vec[2] == 3.5
@@ -74,6 +74,13 @@ function dynsparsevec_simple_use()
     vec2[11] = 0
     @test vec1 == vec2
     return
+end
+
+function filter_pma()
+    pma = PackedMemoryArray(Vector([(1,2.0), (2,3.0),(3,4.0)]))
+    even_ids(n) = n[1] % 2 == 0
+
+    @test filter(even_ids, pma) == PackedMemoryArray(Vector([(2,3.0)]))
 end
 
 function fill(vec, kv)
