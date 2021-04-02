@@ -1,7 +1,7 @@
 name = "DynamicSparseArrays"
 uuid = "8086fd22-9a0c-46a5-a6c8-6e24676501fe"
 authors = ["Guillaume Marques <guillaume.marques@protonmail.com>"]
-version = "0.3.0"
+version = "0.4.0"
 
 [compat]
 julia = "≥ 1.2"
