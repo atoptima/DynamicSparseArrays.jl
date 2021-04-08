@@ -312,3 +312,7 @@ function Base.:(==)(pma1::PackedMemoryArray, pma2::PackedMemoryArray)
     pma1.nb_elements != pma2.nb_elements && return false
     return _arrays_equal(pma1.array, pma2.array)
 end
+
+function Base.copy(pma::PackedMemoryArray)
+    return error("copy not implemented for $(typeof(pma)).")
+end

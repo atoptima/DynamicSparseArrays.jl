@@ -10,6 +10,9 @@ function functional_tests()
     @testset "Insertions & finds in dyn sparse vector - performance" begin
         dynsparsevec_insertions_and_gets()
     end
+    @testset "dynsparsevector - copy & deepcopy" begin
+        dynsparsevec_copy()
+    end
 
     # PackedCSC
     @testset "PackedCSC - func - simple use" begin

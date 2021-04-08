@@ -157,3 +157,24 @@ function dynsparsevec_insertions_and_gets()
     end
     return
 end
+
+function dynsparsevec_copy()
+    kv = Dict{Int, Float64}(
+        rand(rng, 1:100000) => rand(rng, 1:0.1:10000) for i in 1:100
+    )
+    I = collect(keys(kv))
+    V = collect(values(kv))
+    pma = dynamicsparsevec(I,V)
+
+    @test_throws ErrorException copy(pma)
+    deep_copied_pma = deepcopy(pma)
+
+    for (key, val) in deep_copied_pma
+        @test pma[key] == val
+    end
+
+    for (key, val) in pma
+        @test deep_copied_pma[key] == val
+    end
+    return
+end
