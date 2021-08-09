@@ -439,6 +439,8 @@ function dynsparsematrix_fill_mode()
         i += 1
     end
 
+    @test_throws ErrorException @view matrix[:,1]
+
     closefillmode!(matrix)
 
     for i in axes(values, 1), j in axes(values, 2)
