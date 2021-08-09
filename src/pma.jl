@@ -233,8 +233,8 @@ function find(pma::PackedMemoryArray{K,T,P}, key::K) where {K,T,P}
 end
 
 function Base.getindex(pma::PackedMemoryArray{K,T,P}, key::K) where {K,T,P}
-    fpos, fpair = find(pma, key)
-    fpair != nothing && fpair[1] == key && return fpair[2]
+    _, fpair = find(pma, key)
+    fpair !== nothing && fpair[1] == key && return fpair[2]
     return zero(T)
 end
 Base.getindex(pma::PackedMemoryArray, ::Colon) = pma

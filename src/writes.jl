@@ -82,7 +82,7 @@ function purge!(array::Elements{K,T}, from::Int, to::Int) where {K,T}
     nb_cells_deleted = 0
     for pos in from:to
         cell = array[pos]
-        if cell != nothing
+        if cell !== nothing
             key, val = cell
             array[pos] = nothing
             nb_cells_deleted += 1

@@ -40,8 +40,7 @@ function Base.getindex(m::DynamicSparseMatrix, row, col)
 end
 
 function Base.view(m::DynamicSparseMatrix{K,L,T}, row::K, ::Colon) where {K,L,T}
-    m.fillmode && error("View of a row not available in fill mode (Open an issue at https://github.com/atoptima/DynamicSparseArrays.jl if you need it).")
-    return view(m.rowmajor, :, row)
+    return m.fillmode ? view(m.buffer, row, :) : view(m.rowmajor, :, row)
 end
 
 function Base.view(m::DynamicSparseMatrix{K,L,T}, ::Colon, col::L) where {K,L,T}

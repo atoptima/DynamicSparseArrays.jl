@@ -424,10 +424,20 @@ function dynsparsematrix_fill_mode()
     end
 
     matrix[1, 2] = 2
-    matrix[1, 1] = 1
+    matrix[1, 1] = 1 # In fill mode, it adds the value to the current value
 
     values[1, 2] = 2
     values[1, 1] += 1
+
+    # Try the view mode on a row in fill mode
+    row_cols = [1, 2, 4, 6, 10, 11, 12]
+    row_vals = [2, 2, 2, 7, 9, 1, 2]
+    i = 1
+    for (col, val) in @view matrix[1,:]
+        @test row_cols[i] == col
+        @test row_vals[i] == val
+        i += 1
+    end
 
     closefillmode!(matrix)
 

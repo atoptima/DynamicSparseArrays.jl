@@ -22,9 +22,9 @@ include("writes.jl")
 include("pma.jl")
 include("pcsr.jl")
 
-include("views.jl")
-
 include("buffer.jl")
+
+include("views.jl")
 
 include("matrix.jl")
 
