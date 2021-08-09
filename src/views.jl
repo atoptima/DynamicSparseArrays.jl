@@ -33,3 +33,26 @@ function Base.iterate(dms::DynamicMatrixColView, state)
     y === nothing && return nothing
     return _iterate(array[y[1]], array, (state[1], Base.tail(y)...))
 end
+
+# We can only get a row of the buffer
+struct BufferView{L,K,T}
+    rowid::K
+    colids::Vector{L}
+    vals::Vector{T}
+end
+
+function Base.view(buffer::Buffer{L,K,T}, row::K, ::Colon) where {K,L,T}
+    colids, vals = Vector.(get(buffer.rowmajor_coo, row, (L[], T[])))
+    @assert length(colids) == length(vals)
+    _prepare_keys_vals!(colids, vals, +)
+    return BufferView{L,K,T}(row, colids, vals)
+end
+
+function Base.view(::Buffer{L,K,T}, ::Colon, col::L) where {K,L,T}
+    throw(ArgumentError("Cannot view a column of the BufferView."))
+end
+
+function Base.iterate(bf::BufferView, state = 1)
+    state > length(bf.vals) && return nothing
+    return ((bf.colids[state], bf.vals[state]), state + 1)
+end
