@@ -1,7 +1,7 @@
 """
 Matrix whose columns are indexed by an integer.
 """
-mutable struct PackedCSC{K,T<:Real}
+mutable struct PackedCSC{K,T}
     nb_partitions::Int
     semaphores::Vector{Union{Nothing, Int}} # pos of the semaphore in the pma
     #nb_elements_in_partition::Vector{Int} # nb elements after each semaphore
@@ -11,7 +11,7 @@ end
 """
 Matrix
 """
-mutable struct MappedPackedCSC{K,L,T<:Real}
+mutable struct MappedPackedCSC{K,L,T}
     col_keys::Vector{Union{Nothing, L}} # the position of the key is the position of the column
     pcsc::PackedCSC{K,T}
 end
