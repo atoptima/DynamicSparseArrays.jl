@@ -1,6 +1,6 @@
 # We can get only a column of the dynamic matrix.
 # Only usefull to iterate on a column of the dynamic matrix
-struct DynamicMatrixColView{K,L,T<:Real}
+struct DynamicMatrixColView{K,L,T}
     mpcsc::MappedPackedCSC{K,L,T}
     col_key::L
     partition::Int
