@@ -77,7 +77,7 @@ function addrow!(
         addrow!(matrix.buffer, row, colids, vals)
     else
         for j in 1:length(colids)
-            setindex!(matrix, row, colids[j], vals[j])
+            setindex!(matrix, vals[j], row, colids[j])
         end
     end
     return true

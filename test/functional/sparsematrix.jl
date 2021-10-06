@@ -449,6 +449,12 @@ function dynsparsematrix_fill_mode()
         @test matrix.rowmajor[j, i] == values[i, j]
     end
 
+    # Try addrow! when fill mode off
+    row_id = 7
+    row_cols = [1, 3, 4, 5]
+    row_vals = [2, 3, 6, 7]
+    addrow!(matrix, row_id, row_cols, row_vals)
+
     ## Second test
     row = rand(rng, 1:1000, 10_000)
     col = rand(rng, 1:1000, 10_000)
