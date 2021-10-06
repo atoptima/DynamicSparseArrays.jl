@@ -455,6 +455,10 @@ function dynsparsematrix_fill_mode()
     row_vals = [2, 3, 6, 7]
     addrow!(matrix, row_id, row_cols, row_vals)
 
+    for (k,j) in enumerate(row_cols)
+        @test matrix[row_id,j] == row_vals[k] 
+    end
+
     ## Second test
     row = rand(rng, 1:1000, 10_000)
     col = rand(rng, 1:1000, 10_000)
