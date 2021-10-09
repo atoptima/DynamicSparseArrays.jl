@@ -24,7 +24,7 @@ the element.
 If the element is not in the `array`, the method returns the position and the 
 element that has the nearest inferior key (predecessor). 
 
-If the element has no predecessor, the method returns `(0, nothing)`.
+If the element has no predecessor, the method returns `(from-1, nothing)`.
 """
 function find(array::Vector{Union{Nothing, T}}, key, from::Int, to::Int) where {T}
     while from <= to

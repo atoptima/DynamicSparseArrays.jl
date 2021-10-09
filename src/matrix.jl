@@ -36,7 +36,7 @@ end
 function Base.getindex(m::DynamicSparseMatrix, row, col)
     m.fillmode && return m.buffer[row, col]
     # TODO : check number of rows & cols
-    return m.colmajor[row, col]
+    return m.colmajor[row, col] # TODO : change when row is a colon.
 end
 
 function Base.view(m::DynamicSparseMatrix{K,L,T}, row::K, ::Colon) where {K,L,T}
