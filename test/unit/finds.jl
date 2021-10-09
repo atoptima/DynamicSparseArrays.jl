@@ -50,9 +50,9 @@ function test_find()
     # It turned out that some new elements were inserted before the semaphore 
     # making the dynamic matrix absolutely wrong.
 
-    # We consider the following elements array.
-    # The semaphore is the element (3, 10)
-    # We want to insert two new values in the 1st column. Let's see what the `find` method returns.
+    # We consider the following elements array. The semaphore is the element (3, 10).
+    # We want to insert two new values in the 1st column. Let's see what the 
+    # `find` method returns.
 
     #           out of matrix   | ------------------------ 1st column  ------------------------ | -------------- 2nd column -------------- |
     #                           |  semaphore                                                    | semaphore                                |
@@ -91,8 +91,8 @@ function test_find()
     #        out of matrix                | --------- 1st column  ------------ |       | -- 2nd -- |        | ----- 3rd column ---- |
     array = [       nothing,      (3, 10), nothing, (9, 10), nothing, (10, 10), (3, 10),            (3, 10), nothing, (2,1), nothing]
 
-    # position of semaphores : 2, 7, and 8
-    # try to insert new elements :
+    # position of semaphores: 2, 7, and 8
+    # try to insert new elements:
     @test DynamicSparseArrays.find(array, 2, 3, 6) == (2, (3,10))
     @test DynamicSparseArrays.find(array, 2, 8, 7) == (7, (3,10))
     @test DynamicSparseArrays.find(array, 1, 9, 11) == (8, (3,10))
