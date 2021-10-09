@@ -12,7 +12,7 @@ if it is a new `key`.
 Insert the element `(key, value)` in `array`.
 """
 function insert!(array::Elements{K,T}, key::K, value, from::Int, to::Int, semaphores) where {K,T}
-    (pos, _) = find(array, key, from, to)
+    pos, _ = find(array, key, from, to)
     if _getkey(array, pos) == key && from <= pos <= to
         array[pos] = (key, value)
         return (pos, false)
@@ -55,7 +55,7 @@ starting at position `from` and ending at position `to`.
 Return `true` if the element has been deleted; `false` otherwise.
 """
 function delete!(array::Elements{K,T}, key::K, from::Int, to::Int) where {K,T}
-    (pos, _) = find(array, key, from, to)
+    pos, _ = find(array, key, from, to)
     if _getkey(array, pos) == key
         return _delete!(array, pos)
     end
@@ -83,7 +83,6 @@ function purge!(array::Elements{K,T}, from::Int, to::Int) where {K,T}
     for pos in from:to
         cell = array[pos]
         if cell !== nothing
-            key, val = cell
             array[pos] = nothing
             nb_cells_deleted += 1
         end

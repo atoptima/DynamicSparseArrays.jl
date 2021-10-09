@@ -114,9 +114,9 @@ function addpartition!(pcsc::PackedCSC{K,T}, prev_sem_id::Int) where {K,T}
     sem_pos = 0
     if pcsc.semaphores[prev_sem_id + 1] === nothing
         next_sem_id = _nextnonemptypos(pcsc.semaphores, prev_sem_id + 1)
-        sem_pos = pcsc.semaphores[next_sem_id] - 1 #insert the new semaphore in the pma.array just before the next one
+        sem_pos = pcsc.semaphores[next_sem_id] - 1 # insert the new semaphore in the pma.array just before the next one
     else
-        sem_pos = pcsc.semaphores[prev_sem_id + 1] - 1 #insert the new semaphore just before the next one
+        sem_pos = pcsc.semaphores[prev_sem_id + 1] - 1 # insert the new semaphore just before the next one
         resize!(pcsc.semaphores, nb_semaphores + 1) # create room for the position of the new semaphore
         for i in nb_semaphores:-1:(prev_sem_id+1)
             moved_sem_pos = pcsc.semaphores[i]
@@ -138,7 +138,7 @@ end
 
 function addcolumn!(mpcsc::MappedPackedCSC{K,L,T}, col::L, prev_col_pos::Int) where {K,L,T}
     col_pos = 0
-    if (prev_col_pos == length(mpcsc.col_keys)) # we add the partition and the semaphore at the end
+    if prev_col_pos == length(mpcsc.col_keys) # we add the partition and the semaphore at the end
         push!(mpcsc.col_keys, col)
         addpartition!(mpcsc.pcsc)
         col_pos = length(mpcsc.col_keys)
@@ -212,8 +212,8 @@ function find(pcsc::PackedCSC, partition, key)
 end
 
 function Base.getindex(pcsc::PackedCSC{K,T}, key::K, partition::Int) where {K,T}
-    fpos, fpair = find(pcsc, partition, key)
-    fpair != nothing && fpair[1] == key && return fpair[2]
+    _, fpair = find(pcsc, partition, key)
+    fpair !== nothing && fpair[1] == key && return fpair[2]
     return zero(T)
 end
 
@@ -273,7 +273,6 @@ function Base.getindex(mpcsc::MappedPackedCSC{L,K,T}, ::Colon, col::K) where {L,
     return mpcsc.pcsc[:, col_pos]
 end
 
-
 # setindex
 function Base.setindex!(pcsc::PackedCSC{K,T}, value, key::K, partition::Int) where {K,T}
     if partition > length(pcsc.semaphores)
@@ -283,7 +282,10 @@ function Base.setindex!(pcsc::PackedCSC{K,T}, value, key::K, partition::Int) whe
     from === nothing && error("The partition has been deleted.")
     to = _pos_of_partition_end(pcsc, partition)
     if value != zero(T)
-        _insert!(pcsc, value, key, from, to)
+        # We exclude the semaphore from the subarray in which we insert the new element
+        # because otherwise the new element can be inserted at the beginning of the array
+        # (see test 3 in unit/finds.jl).
+        _insert!(pcsc, value, key, from+1, to)
     else
         _delete!(pcsc, key, from, to)
     end
