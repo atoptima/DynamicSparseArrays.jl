@@ -34,7 +34,7 @@ function _array(keys::Vector{K}, values::Vector{T}, capacity) where {K,T}
     array = Elements{K,T}(nothing, capacity)
     nb_elements = length(values)
     for i in 1:nb_elements
-        @inbounds array[i] = (keys[i], values[i])
+        #= @inbounds =# array[i] = (keys[i], values[i])
     end
     return array
 end

@@ -33,16 +33,16 @@ function PackedCSC(
     i = 1
     for semaphore_id in 1:nb_semaphores
         # Insert the semaphore
-        @inbounds pcsc_keys[i] = semaphore_key(L)
-        @inbounds pcsc_values[i] = T(semaphore_id) # This is why T <: Real
+        #= @inbounds =# pcsc_keys[i] = semaphore_key(L)
+        #= @inbounds =# pcsc_values[i] = T(semaphore_id) # This is why T <: Real
         i += 1
         # Create the column
-        @inbounds nkeys = Vector(row_keys[semaphore_id])
-        @inbounds nvalues = Vector(values[semaphore_id])
+        #= @inbounds =# nkeys = Vector(row_keys[semaphore_id])
+        #= @inbounds =# nvalues = Vector(values[semaphore_id])
         _prepare_keys_vals!(nkeys, nvalues, combine)
         for j in 1:length(nkeys)
-            @inbounds pcsc_keys[i] = nkeys[j]
-            @inbounds pcsc_values[i] = nvalues[j]
+            #= @inbounds =# pcsc_keys[i] = nkeys[j]
+            #= @inbounds =# pcsc_values[i] = nvalues[j]
             i += 1
         end
     end
@@ -53,7 +53,7 @@ function PackedCSC(
     for (pos, pair) in enumerate(pma.array)
         if pair !== nothing && pair[1] == semaphore_key(L)
             id = Int(pair[2])
-            @inbounds semaphores[id] = pos
+            #= @inbounds =# semaphores[id] = pos
         end
     end
     return PackedCSC(nb_semaphores, semaphores, pma)
@@ -340,9 +340,9 @@ function _dynamicsparse(
     !always_use_map && error("TODO issue #2.")
 
     p = sortperm(collect(zip(J,I)), alg=QuickSort) # Columns first
-    @inbounds I = I[p]
-    @inbounds J = J[p]
-    @inbounds V = V[p]
+    #= @inbounds =# I = I[p]
+    #= @inbounds =# J = J[p]
+    #= @inbounds =# V = V[p]
 
     nb_cols = 1
     nb_rows_in_col = Int[]
@@ -354,16 +354,16 @@ function _dynamicsparse(
     prev_j = J[read_pos]
     while read_pos < length(I)
         read_pos += 1
-        @inbounds cur_i = I[read_pos]
-        @inbounds cur_j = J[read_pos]
+        #= @inbounds =# cur_i = I[read_pos]
+        #= @inbounds =# cur_j = J[read_pos]
         if prev_i == cur_i && prev_j == cur_j
-           @inbounds V[write_pos] = combine(V[write_pos], V[read_pos])
+           #= @inbounds =# V[write_pos] = combine(V[write_pos], V[read_pos])
         else
             write_pos += 1
             if write_pos < read_pos
-                @inbounds I[write_pos] = cur_i
-                @inbounds J[write_pos] = cur_j
-                @inbounds V[write_pos] = V[read_pos]
+                #= @inbounds =# I[write_pos] = cur_i
+                #= @inbounds =# J[write_pos] = cur_j
+                #= @inbounds =# V[write_pos] = V[read_pos]
             end
             if cur_j != prev_j
                 nb_cols += 1
@@ -387,16 +387,16 @@ function _dynamicsparse(
     col_pos = 0
     row_pos = 0
     while i <= length(I)
-        @inbounds cur_col = J[i]
+        #= @inbounds =# cur_col = J[i]
         if prev_col != cur_col || i == 1
             col_pos += 1
             row_pos = 1
-            @inbounds col_keys[col_pos] = cur_col
-            @inbounds row_keys[col_pos] = Vector{K}(undef, nb_rows_in_col[col_pos])
-            @inbounds values[col_pos] = Vector{T}(undef, nb_rows_in_col[col_pos])
+            #= @inbounds =# col_keys[col_pos] = cur_col
+            #= @inbounds =# row_keys[col_pos] = Vector{K}(undef, nb_rows_in_col[col_pos])
+            #= @inbounds =# values[col_pos] = Vector{T}(undef, nb_rows_in_col[col_pos])
         end
-        @inbounds row_keys[col_pos][row_pos] = I[i]
-        @inbounds values[col_pos][row_pos] = V[i]
+        #= @inbounds =# row_keys[col_pos][row_pos] = I[i]
+        #= @inbounds =# values[col_pos][row_pos] = V[i]
         prev_col = cur_col
         row_pos += 1
         i += 1

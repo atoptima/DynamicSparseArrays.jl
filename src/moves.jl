@@ -15,7 +15,7 @@ end
 
 function _moverightloop!(array::Elements{K,T}, from, to, ::Nothing) where {K,T}
     i = to
-    @inbounds while i > from
+    #= @inbounds =# while i > from
         i -= 1
         array[i+1] = array[i]
     end
@@ -26,7 +26,7 @@ end
 function _moverightloop!(array::Elements{K,T}, from, to, semaphores::Vector) where {K,T}
     i = to
     sem_key = semaphore_key(K)
-    @inbounds while i > from
+    #= @inbounds =# while i > from
         i -= 1
         cell = array[i]
         if cell != nothing
@@ -58,7 +58,7 @@ end
 
 function _moveleftloop!(array::Elements{K,T}, from, to, ::Nothing) where {K,T}
     i = to
-    @inbounds while i < from
+    #= @inbounds =# while i < from
         i += 1
         array[i-1] = array[i]
     end
@@ -69,7 +69,7 @@ end
 function _moveleftloop!(array::Elements{K,T}, from, to, semaphores::Vector) where {K,T}
     i = to
     sem_key = semaphore_key(K)
-    @inbounds while i < from
+    #= @inbounds =# while i < from
         i += 1
         cell = array[i]
         if cell !== nothing
@@ -94,7 +94,7 @@ this method packs the `m` non-empty cells on the left side of the subarray.
 function pack!(array::Elements{K,T}, window_start, window_end, m) where {K,T}
     i = window_start
     j = window_start
-    @inbounds while i < window_start + m
+    #= @inbounds =# while i < window_start + m
         if array[j] === nothing # empty cell
             j += 1
             continue
@@ -124,7 +124,7 @@ function spread!(array::Elements{K,T}, window_start, window_end, m) where {K,T}
     next_empty_cell = window_start + floor(nb_empty_cells * empty_cell_freq) - 1
     i = window_start + m - 1
     j = window_end
-    @inbounds while i != j && i >= window_start
+    #= @inbounds =# while i != j && i >= window_start
         if j == next_empty_cell
             nb_empty_cells -= 1
             next_empty_cell = window_start + floor(nb_empty_cells * empty_cell_freq) - 1
@@ -147,7 +147,7 @@ function spread!(array::Elements{K,T}, window_start, window_end, m, semaphores) 
     i = window_start + m - 1
     j = window_end
     sem_key = semaphore_key(K)
-    @inbounds while i >= window_start
+    #= @inbounds =# while i >= window_start
         if j == next_empty_cell
             nb_empty_cells -= 1
             next_empty_cell = window_start + floor(nb_empty_cells * empty_cell_freq) - 1
