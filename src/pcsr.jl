@@ -56,6 +56,9 @@ function PackedCSC(
             #= @inbounds =# semaphores[id] = pos
         end
     end
+    @assert mapreduce(i -> isdefined(pcsc_keys, i), &, 1:length(pcsc_keys))
+    @assert mapreduce(i -> isdefined(pcsc_values, i), &, 1:length(pcsc_values))
+    @assert mapreduce(i -> isdefined(sempahores, i), &, 1:length(sempahores)) 
     return PackedCSC(nb_semaphores, semaphores, pma)
 end
 
@@ -78,7 +81,7 @@ end
 
 function MappedPackedCSC(::Type{K}, ::Type{L}, ::Type{T}) where {K,L,T}
     pcsc = PackedCSC(K, T)
-    col_keys = Vector{Union{Nothing, L}}(undef, 0)
+    col_keys = Vector{Union{Nothing, L}}(nothing, 0)
     return MappedPackedCSC(col_keys, pcsc)
 end
 
@@ -401,6 +404,10 @@ function _dynamicsparse(
         row_pos += 1
         i += 1
     end
+
+    @assert mapreduce(i -> isdefined(col_keys, i), &, 1:length(col_keys)) 
+    @assert mapreduce(i -> isdefined(row_keys, i), &, 1:length(row_keys)) 
+    @assert mapreduce(i -> isdefined(values, i), &, 1:length(values))
 
     if always_use_map
         return MappedPackedCSC(row_keys, col_keys, values, combine)
