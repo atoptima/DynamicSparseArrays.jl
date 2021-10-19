@@ -46,9 +46,17 @@ function get_rowids_colids_vals(buffer::Buffer{L,K,T}) where {K,L,T}
             curpos += 1
         end
     end
-    @assert mapreduce(i -> isdefined(rowids, i), &, 1:length(rowids)) 
-    @assert mapreduce(i -> isdefined(colids, i), &, 1:length(colids))
-    @assert mapreduce(i -> isdefined(vals, i), &, 1:length(vals))
+    if length(rowids) > 0
+        @assert mapreduce(i -> isassigned(rowids, i), &, 1:length(rowids))
+    end
+
+    if length(colids) > 0
+        @assert mapreduce(i -> isassigned(colids, i), &, 1:length(colids))
+    end
+
+    if length(vals) > 0
+        @assert mapreduce(i -> isassigned(vals, i), &, 1:length(vals))
+    end
     return rowids, colids, vals
 end
 
