@@ -3,6 +3,8 @@ struct Transposed{T}
 end
 
 Base.transpose(matrix::DynamicSparseMatrix) = Transposed(matrix)
+Base.setindex!(m::Transposed, val, row, col) = setindex!(m.array, val, col, row)
+Base.getindex(m::Transposed, row, col) = getindex(m.array, col, row)
 
 function Base.:(*)(matrix::DynamicSparseMatrix{K,L,T}, v::PackedMemoryArray{L,T}) where {K,L,T}
     return _mult(matrix.colmajor, v)
