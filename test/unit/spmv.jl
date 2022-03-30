@@ -34,6 +34,11 @@ function test_spmv_2()
     V2 = [1, 1, 1]
     vec = dynamicsparsevec(I2, V2)
 
+    transposed_matrix = transpose(matrix)
+    for (i,j,v) in Iterators.zip(I,J,V)
+        @test transposed_matrix[j,i] == matrix[i,j] == v
+    end
+
     result = transpose(matrix) * vec
 
     # The multiplication returns a Dict.
@@ -42,6 +47,10 @@ function test_spmv_2()
     @test result[3] == 2
     @test result[4] == 3
     @test result[5] == 1
+
+
+    transposed_matrix[2, 'e'] = 5
+    @test transposed_matrix[2, 'e'] == matrix['e', 2] == 5
     return
 end
 
