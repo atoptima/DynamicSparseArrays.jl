@@ -8,6 +8,8 @@ mutable struct PackedCSC{K,T}
     pma::PackedMemoryArray{K,T,NoPredictor}
 end
 
+SparseArrays.nnz(m::PackedCSC) = nnz(m.pma) - m.nb_partitions
+
 """
 Matrix
 """
@@ -19,6 +21,7 @@ end
 nbpartitions(pcsc::PackedCSC) = pcsc.nb_partitions
 nbpartitions(mpcsc::MappedPackedCSC) = nbpartitions(mpcsc.pcsc)
 semaphore_key(::Type{K}) where {K<:Integer} = zero(K)
+SparseArrays.nnz(m::MappedPackedCSC) = nnz(m.pcsc)
 
 function PackedCSC(
     row_keys::Vector{Vector{L}}, values::Vector{Vector{T}},
@@ -196,11 +199,9 @@ function deletecolumn!(mpcsc::MappedPackedCSC{K,L,T}, col::L) where {K,L,T}
 end
 
 Base.ndims(matrix::PackedCSC) = 2
-Base.length(matrix::PackedCSC) = length(matrix.pma) - matrix.nb_partitions
 #Base.size(matrix::PackedCSC) = (length(matrix.pma.array), matrix.nb_partitions)
 
 Base.ndims(matrix::MappedPackedCSC) = ndims(matrix.pcsc)
-Base.length(matrix::MappedPackedCSC) = length(matrix.pcsc)
 #Base.size(matrix::MappedPackedCSC) = size(matrix.pcsc)
 
 
@@ -229,7 +230,8 @@ function Base.getindex(pcsc::PackedCSC{K,T}, key::K, ::Colon) where {K,T}
             push!(elements, (partition_id, v))
         end
     end
-    return PackedMemoryArray(elements)
+    pma = PackedMemoryArray(elements)
+    return DynamicSparseVector(_guess_length(pma), pma)
 end
 
 function Base.getindex(pcsc::PackedCSC{K,T}, ::Colon, partition::Int) where {K,T}
@@ -239,7 +241,8 @@ function Base.getindex(pcsc::PackedCSC{K,T}, ::Colon, partition::Int) where {K,T
     for elem in pcsc.pma.array[partition_start:partition_end]
         elem !== nothing && push!(elements, elem)
     end
-    return PackedMemoryArray(elements)
+    pma = PackedMemoryArray(elements)
+    return DynamicSparseVector(_guess_length(pma), pma)
 end
 
 function Base.getindex(mpcsc::MappedPackedCSC{L,K,T}, row::L, col::K) where {L,K,T}
@@ -262,7 +265,8 @@ function Base.getindex(mpcsc::MappedPackedCSC{L,K,T}, row::L, ::Colon) where {L,
             push!(elements, (mpcsc.col_keys[partition_id], v))
         end
     end
-    return PackedMemoryArray(elements)
+    pma = PackedMemoryArray(elements)
+    return DynamicSparseVector(_guess_length(pma), pma)
 end
 
 function Base.getindex(mpcsc::MappedPackedCSC{L,K,T}, ::Colon, col::K) where {L,K,T}

@@ -7,12 +7,12 @@ function pcsc_simple_use()
     keys = [[1, 2, 3], [2, 6, 7], [1, 6, 8]]
     values = [[2, 3, 4], [2, 4, 5], [3, 5, 7]]
 
-    pcsc1 = PackedCSC(keys, values)
+    pcsc1 = DynamicSparseArrays.PackedCSC(keys, values)
     @test nbpartitions(pcsc1) == 3
     check_semaphores(pcsc1.pma.array, pcsc1.semaphores)
     check_key_order(pcsc1.pma.array, pcsc1.semaphores)
     @test ndims(pcsc1) == 2
-    @test length(pcsc1) == 9 # nb of non-zero entries
+    @test nnz(pcsc1) == 9
     @test nbpartitions(pcsc1) == 3
 
     # Test A.2 : Check value of entries
@@ -33,7 +33,7 @@ function pcsc_simple_use()
     matrix[4,2] = 1
     pcsc1[4,2] = 1 # new element
 
-    @test length(pcsc1) == 10
+    @test nnz(pcsc1) == 10
     @test nbpartitions(pcsc1) == 3
 
     #@test pcsc1 == matrix # TODO
@@ -42,7 +42,7 @@ function pcsc_simple_use()
     end
 
     # Test A.4 : make a copy of the matrix
-    pcsc3 = PackedCSC(pcsc1)
+    pcsc3 = DynamicSparseArrays.PackedCSC(pcsc1)
     @test_broken pcsc1 == pcsc3 # TODO
 
     # Test A.5 : retrieve columns & rows
@@ -50,8 +50,8 @@ function pcsc_simple_use()
     row = pcsc1[2, :]
     row_from_matrix = matrix[2, :]
 
-    @test length(row) == 2
-    for i in 1:length(row_from_matrix) # TODO : good test
+    @test nnz(row) == 2
+    for i in eachindex(row_from_matrix) # TODO : good test
         @test row[i] == row_from_matrix[i]
     end
 
@@ -59,7 +59,9 @@ function pcsc_simple_use()
     column = pcsc1[:, 2]
     col_from_matrix = pcsc1[:, 2]
 
-    @test length(column) == 5
+    @show typeof(col_from_matrix)
+
+    @test nnz(column) == 5
     for i in 1:length(col_from_matrix)
         @test column[i] == col_from_matrix[i]
     end
@@ -68,30 +70,30 @@ function pcsc_simple_use()
     for i in 1:3
         pcsc3[2,i] = 0
     end
-    @test length(pcsc3[2,:]) == 0
+    @test nnz(pcsc3[2,:]) == 0
 
     # Test A.5.4 : retrieve an empty column
     for i in 1:8
         pcsc3[i,2] = 0
     end
-    @test length(pcsc3[:,2]) == 0
+    @test nnz(pcsc3[:,2]) == 0
 
     # Test A.6 : add columns
     pcsc1[10,5] = 9 # new element and new column
-    @test length(pcsc1) == 11
+    @test nnz(pcsc1) == 11
     @test nbpartitions(pcsc1) == 5 # 2 new partitions
 
     pcsc1[1,4] = 2
-    @test length(pcsc1) == 12
+    @test nnz(pcsc1) == 12
     check_semaphores(pcsc1.pma.array, pcsc1.semaphores)
     check_key_order(pcsc1.pma.array, pcsc1.semaphores)
 
     # Test A.7 : delete columns (deleting a column is irreversible)
-    nb_elems = length(pcsc1)
-    nb_elems_in_part_2 = length(pcsc1[:,2])
+    nb_elems = nnz(pcsc1)
+    nb_elems_in_part_2 = nnz(pcsc1[:,2])
     deletepartition!(pcsc1, 2)
     @test nbpartitions(pcsc1) == 4
-    @test length(pcsc1) ==  nb_elems - nb_elems_in_part_2 #TODO
+    @test nnz(pcsc1) ==  nb_elems - nb_elems_in_part_2 #TODO
     nb_sem = check_semaphores(pcsc1.pma.array, pcsc1.semaphores)
     @test nb_sem == 4
     check_key_order(pcsc1.pma.array, pcsc1.semaphores)
@@ -101,11 +103,11 @@ function pcsc_simple_use()
     # Test B.1
     keys = [[1, 2, 3, 1, 2], Int[], [2, 6, 7, 7, 5], [1, 6, 8, 2, 1]]
     values = [[2, 3, 4, 1, 1], Int[], [2, 4, 5, 1, 1], [3, 5, 7, 1, 1]]
-    pcsc2 = PackedCSC(keys, values)
+    pcsc2 = DynamicSparseArrays.PackedCSC(keys, values)
     @test nbpartitions(pcsc2) == 4
     check_semaphores(pcsc2.pma.array, pcsc2.semaphores)
     check_key_order(pcsc2.pma.array, pcsc2.semaphores)
-    @test length(pcsc2) == 11
+    @test nnz(pcsc2) == 11
     @test nbpartitions(pcsc2) == 4
 
     # Test B.2
@@ -123,7 +125,7 @@ function pcsc_insertions_and_gets()
     partitions = pcsc_factory(nbpartitions)
     K = [collect(keys(partition)) for partition in partitions]
     V = [collect(values(partition)) for partition in partitions]
-    ppma = PackedCSC(K, V)
+    ppma = DynamicSparseArrays.PackedCSC(K, V)
 
     # find
     for i in 1:100000
@@ -161,10 +163,10 @@ function dynsparsematrix_simple_use()
     matrix = dynamicsparse(I, J, V)
 
     I,J,V = dynsparsematrix_factory(1000, 1000, 0.2)
-    for k in 1:length(I)
+    for k in eachindex(I)
         matrix[I[k], J[k]] = V[k]
     end
-    for k in 1:length(I)
+    for k in eachindex(I)
         @test matrix[I[k], J[k]] == V[k]
     end
 
@@ -178,7 +180,7 @@ function dynsparsematrix_simple_use()
     check_semaphores(matrix.rowmajor.pcsc.pma.array, matrix.rowmajor.pcsc.semaphores)
     check_key_order(matrix.rowmajor.pcsc.pma.array, matrix.rowmajor.pcsc.semaphores)
     @test ndims(matrix) == 2
-    @test length(matrix.colmajor) == length(matrix.rowmajor) == length(matrix) == 9 # nb of non-zero entries
+    @test nnz(matrix.colmajor) == nnz(matrix.rowmajor) == nnz(matrix) == 9 # nb of non-zero entries
     @test size(matrix)[2] == 3
 
     # Test A.2 : Check value of entries
@@ -199,15 +201,15 @@ function dynsparsematrix_simple_use()
     matrix2[4,2] = 1
     matrix[4,2] = 1 # new element
 
-    @test length(matrix.rowmajor) == length(matrix.colmajor) == 10
-    @test size(matrix) == (7, 3)
+    @test nnz(matrix.rowmajor) == nnz(matrix.colmajor) == 10
+    @test size(matrix) == (8, 3)
 
     for i in 1:nr, j in 1:nc
         @test matrix[i,j] == matrix2[i,j]
     end
 
     # Test A.4 : make a copy of the matrix
-    matrix3 = MappedPackedCSC(matrix.colmajor)
+    matrix3 = DynamicSparseArrays.MappedPackedCSC(matrix.colmajor)
     @test_broken matrix3 == matrix
 
     # Test A.5 : retrieve columns & rows
@@ -215,7 +217,7 @@ function dynsparsematrix_simple_use()
     row = matrix[2, :]
     row_from_matrix = matrix2[2, :]
 
-    @test length(row) == 2
+    @test nnz(row) == 2
     for i in 1:length(row_from_matrix) # TODO : good test
         @test row[i] == row_from_matrix[i]
     end
@@ -224,7 +226,7 @@ function dynsparsematrix_simple_use()
     column = matrix[:, 2]
     col_from_matrix = matrix2[:, 2]
 
-    @test length(column) == 5
+    @test nnz(column) == 5
     for i in 1:length(col_from_matrix)
         @test column[i] == col_from_matrix[i]
     end
@@ -233,18 +235,18 @@ function dynsparsematrix_simple_use()
     for i in 1:3
         matrix3[2,i] = 0
     end
-    @test length(matrix3[2,:]) == 0
+    @test nnz(matrix3[2,:]) == 0
 
     # Test A.5.4 : retrieve an empty column
     for i in 1:8
         matrix3[i,2] = 0
     end
-    @test length(matrix3[:,2]) == 0
+    @test nnz(matrix3[:,2]) == 0
 
     # Test A.6 : add columns
     matrix[10,5] = 9 # new element and new column
-    @test length(matrix) == 11
-    @test size(matrix)[2] == 4 # 1 new partition
+    @test nnz(matrix) == 11
+    @test DynamicSparseArrays.nbpartitions(matrix.colmajor) == 4 # 1 new partition
 
     matrix[1,-1] = 1 # add column at the very beginning
     matrix[1,4] = 2 # We can create column 4 even if the last created is 5
@@ -253,7 +255,7 @@ function dynsparsematrix_simple_use()
     @test matrix[3,4] == 5
     @test matrix[1,-1] == 1
 
-    @test size(matrix)[2] == 6 # 2 new columns
+    @test DynamicSparseArrays.nbpartitions(matrix.colmajor) == 6 # 2 new columns
 
     check_semaphores(matrix.colmajor.pcsc.pma.array, matrix.colmajor.pcsc.semaphores)
     check_key_order(matrix.colmajor.pcsc.pma.array, matrix.colmajor.pcsc.semaphores)
@@ -262,7 +264,8 @@ function dynsparsematrix_simple_use()
 
     # Test A.7 : delete columns (and recreate the column)
     deletecolumn!(matrix, 2)
-    @test size(matrix) == (8, 5)
+    @test DynamicSparseArrays.nbpartitions(matrix.rowmajor) == 8
+    @test DynamicSparseArrays.nbpartitions(matrix.colmajor) == 5
 
     nb_sem1 = check_semaphores(matrix.colmajor.pcsc.pma.array, matrix.colmajor.pcsc.semaphores)
     nb_sem2 = check_semaphores(matrix.rowmajor.pcsc.pma.array, matrix.rowmajor.pcsc.semaphores)
@@ -311,11 +314,14 @@ function dynsparsematrix_simple_use()
     @test matrix[5, 'c'] == 9
     @test matrix[2, 'd'] == 10
 
+    @test size(matrix) == (5, 'e')
+
     # add new column
     matrix[2, 'b'] = 11
     @test matrix[2, 'b'] == 11
 
-    @test size(matrix) == (4, 5)
+    @test DynamicSparseArrays.nbpartitions(matrix.rowmajor) == 4
+    @test DynamicSparseArrays.nbpartitions(matrix.colmajor) == 5
 
     # delete column
     deletecolumn!(matrix, 'a')
@@ -326,7 +332,8 @@ function dynsparsematrix_simple_use()
     @test matrix[5, 'c'] == 0
     @test matrix[5, 'e'] == 0
 
-    @test size(matrix) == (3, 4)
+    @test DynamicSparseArrays.nbpartitions(matrix.rowmajor) == 3
+    @test DynamicSparseArrays.nbpartitions(matrix.colmajor) == 4
     return
 end
 
@@ -502,7 +509,7 @@ function dynsparsematrix_fill_mode()
     ## Fourth test : Close fill mode of empty matrix
     matrix4 = dynamicsparse(Int, Int, Int)
     closefillmode!(matrix4)
-    @test length(matrix4) == 0
+    @test nnz(matrix4) == 0
     @test matrix4[1,1] == 0
 
     ## Fifth test : Close fill mode of empty matrix not in fill mode

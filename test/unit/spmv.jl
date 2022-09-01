@@ -1,4 +1,5 @@
 DynamicSparseArrays.semaphore_key(::Type{Float64}) = 0.0
+Base.zero(::Type{Char}) = 'a'
 
 # Classic test for sparse matrix sparse vector multiplication
 function test_spmv_1()
