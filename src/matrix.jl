@@ -1,29 +1,35 @@
 mutable struct DynamicSparseMatrix{K,L,T}
+    m::K # Number of rows.
+    n::L # Number of columns.
     fillmode::Bool
     buffer::Union{Buffer{L,K,T}, Nothing}
     colmajor::Union{MappedPackedCSC{K,L,T}, Nothing}
     rowmajor::Union{MappedPackedCSC{L,K,T}, Nothing}
 end
 
-function dynamicsparse(I::Vector{K}, J::Vector{L}, V::Vector{T}) where {K,L,T}
+function dynamicsparse(I::Vector{K}, J::Vector{L}, V::Vector{T}, m = _guess_length(I), n = _guess_length(J)) where {K,L,T}
     return DynamicSparseMatrix(
-        false, nothing, dynamicsparsecolmajor(I,J,V), dynamicsparsecolmajor(J,I,V)
+        m, n, false, nothing, dynamicsparsecolmajor(I,J,V), dynamicsparsecolmajor(J,I,V)
     )
 end
 
 function dynamicsparse(::Type{K}, ::Type{L}, ::Type{T}; fill_mode = true) where {K,L,T}
     return if fill_mode
         DynamicSparseMatrix(
-            true, buffer(K,L,T), nothing, nothing
+            zero(K), zero(L), true, buffer(K,L,T), nothing, nothing
         )
     else
         DynamicSparseMatrix(
-            false, nothing, dynamicsparsecolmajor(K,L,T), dynamicsparsecolmajor(L,K,T)
+            zero(K), zero(L), false, nothing, dynamicsparsecolmajor(K,L,T), dynamicsparsecolmajor(L,K,T)
         )
     end
 end
 
 function Base.setindex!(m::DynamicSparseMatrix{K,L,T}, val, row::K, col::L) where {K,L,T}
+    if !iszero(val)
+        m.m = max(m.m, row)
+        m.n = max(m.n, col)
+    end
     if m.fillmode
         addelem!(m.buffer, row, col, val)
     else
@@ -49,8 +55,9 @@ function Base.view(m::DynamicSparseMatrix{K,L,T}, ::Colon, col::L) where {K,L,T}
 end
 
 Base.ndims(m::DynamicSparseMatrix) = 2
-Base.length(m::DynamicSparseMatrix) = length(m.rowmajor)
-Base.size(m::DynamicSparseMatrix) = (nbpartitions(m.rowmajor), nbpartitions(m.colmajor))
+SparseArrays.nnz(m::DynamicSparseMatrix) = nnz(m.rowmajor)
+Base.size(m::DynamicSparseMatrix) = (m.m, m.n)
+Base.size(m::DynamicSparseMatrix, i) = size(m)[i]
 
 function deletecolumn!(matrix::DynamicSparseMatrix{K,L,T}, col::L) where {K,L,T}
     matrix.fillmode && error("Cannot delete a column in fill mode")

@@ -29,8 +29,8 @@ function dynsparsevec_simple_use()
     @test vec2[10] == 1.1
 
     @test ndims(vec) == 1
-    @test length(vec) == 6 # (because index 4 is a zero-element)
-    @test size(vec)[1] >= length(vec)
+    @test length(vec) == 10 # (because the greatest index is 10)
+    @test size(vec)[1] == length(vec)
 
     # Test 2 : set some values
     vec[1] = 0 # delete
@@ -54,8 +54,8 @@ function dynsparsevec_simple_use()
     for (i, (key, val)) in enumerate(vec)
         @test (key, val) == expected_loop[i]
     end
-    @test length(vec) == length(expected_loop)
-    @test size(vec)[1] >= length(vec)
+    @test length(vec) == 1001
+    @test size(vec)[1] == length(vec)
 
     # Test 4 : SemiColon
     @test vec[:] === vec
@@ -72,15 +72,17 @@ function dynsparsevec_simple_use()
 
     vec2[10] = 0
     vec2[11] = 0
+    shrink_size!(vec1)
+    shrink_size!(vec2)
     @test vec1 == vec2
     return
 end
 
 function filter_pma()
-    pma = PackedMemoryArray(Vector([(1,2.0), (2,3.0),(3,4.0)]))
+    vec = dynamicsparsevec([1, 2, 3], [2.0, 3.0, 4.0])
     even_ids(n) = n[1] % 2 == 0
 
-    @test filter(even_ids, pma) == PackedMemoryArray(Vector([(2,3.0)]))
+    @test filter(even_ids, vec) == dynamicsparsevec([2], [3.0])
 end
 
 function fill(vec, kv)
@@ -88,7 +90,7 @@ function fill(vec, kv)
     for (k, v) in kv
         vec[k] = v
         n += 1
-        @test vec.nb_elements == n
+        @test nnz(vec) == n
     end
     return
 end
@@ -98,7 +100,7 @@ function empty(vec, kv)
     for (k, v) in kv
         vec[k] = 0.0
         n -= 1
-        @test vec.nb_elements == n
+        @test nnz(vec) == n
     end
     return
 end

@@ -1,8 +1,9 @@
 module DynamicSparseArrays
 
-export PackedMemoryArray,
-       PackedCSC,
-       MappedPackedCSC,
+using SparseArrays
+
+export DynamicSparseVector,
+       DynamicSparseMatrix,
        dynamicsparsevec,
        dynamicsparse,
        nbpartitions,
@@ -10,7 +11,8 @@ export PackedMemoryArray,
        deletecolumn!,
        deleterow!,
        addrow!,
-       closefillmode!
+       closefillmode!,
+       shrink_size!
 
 const Elements{K,T} = Vector{Union{Nothing,Tuple{K,T}}}
 
@@ -20,6 +22,7 @@ include("finds.jl")
 include("writes.jl")
 
 include("pma.jl")
+include("vector.jl")
 include("pcsr.jl")
 
 include("buffer.jl")

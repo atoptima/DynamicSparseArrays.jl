@@ -90,50 +90,6 @@ function PackedMemoryArray(::Type{K}, ::Type{T}; expected_nb_elems = 100) where 
     return _pma(array, 0, t_h, t_0, p_h, p_0)
 end
 
-function _prepare_keys_vals!(keys::Vector{K}, values::Vector{T}, combine::Function) where {K,T}
-    @assert length(keys) == length(values)
-    length(keys) == 0 && return
-    p = sortperm(keys)
-    permute!(keys, p)
-    permute!(values, p)
-    write_pos = 1
-    read_pos = 1
-    prev_id = keys[read_pos]
-    while read_pos < length(keys)
-        read_pos += 1
-        cur_id = keys[read_pos]
-        if prev_id == cur_id
-            values[write_pos] = combine(values[write_pos], values[read_pos])
-        else
-            write_pos += 1
-            if write_pos < read_pos
-                keys[write_pos] = cur_id
-                values[write_pos] = values[read_pos]
-            end
-        end
-        prev_id = cur_id
-    end
-    resize!(keys, write_pos)
-    resize!(values, write_pos)
-    return
-end
-
-function _dynamicsparsevec(I, V, combine)
-    _prepare_keys_vals!(I, V, combine)
-    return PackedMemoryArray(I, V)
-end
-
-function dynamicsparsevec(I::Vector{K}, V::Vector{T}, combine::Function) where {T,K}
-    applicable(zero, T) || 
-        throw(ArgumentError("cannot apply method zero over $(T)"))
-    length(I) == length(V) ||
-        throw(ArgumentError("keys & nonzeros vectors must have same length."))
-    return _dynamicsparsevec(Vector(I), Vector(V), combine)
-end
-
-dynamicsparsevec(I,V) = dynamicsparsevec(I,V,+)
-
-
 # start included, end included
 function _even_rebalance!(pma::PackedMemoryArray, window_start, window_end, m)
     capacity = window_end - window_start + 1
@@ -204,9 +160,7 @@ function _shrink!(pma::PackedMemoryArray)
     return
 end
 
-Base.ndims(pma::PackedMemoryArray) = 1
-Base.size(pma::PackedMemoryArray) = (length(pma.array),)
-Base.length(pma::PackedMemoryArray) = pma.nb_elements
+SparseArrays.nnz(pma::PackedMemoryArray) = pma.nb_elements
 
 function Base.iterate(pma::PackedMemoryArray, state = (eachindex(getfield(pma, :array)),))
     array = getfield(pma, :array)
@@ -237,8 +191,6 @@ function Base.getindex(pma::PackedMemoryArray{K,T,P}, key::K) where {K,T,P}
     fpair !== nothing && fpair[1] == key && return fpair[2]
     return zero(T)
 end
-Base.getindex(pma::PackedMemoryArray, ::Colon) = pma
-
 
 # setindex
 function Base.setindex!(pma::PackedMemoryArray{K,T,P}, value, key::K) where {K,T,P}  
@@ -311,8 +263,4 @@ function Base.:(==)(pma1::PackedMemoryArray, pma2::PackedMemoryArray)
     pma1 === pma2 && return true
     pma1.nb_elements != pma2.nb_elements && return false
     return _arrays_equal(pma1.array, pma2.array)
-end
-
-function Base.copy(pma::PackedMemoryArray)
-    return error("copy not implemented for $(typeof(pma)).")
 end

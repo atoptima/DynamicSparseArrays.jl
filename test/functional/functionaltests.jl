@@ -1,5 +1,6 @@
 include("sparsevector.jl")
 include("sparsematrix.jl")
+include("math.jl")
 
 function functional_tests()
     # Dynamic Sparse Vector (pma)
@@ -35,6 +36,10 @@ function functional_tests()
     end
     @testset "Fillin mode" begin
         dynsparsematrix_fill_mode()
+    end
+
+    @testset "spMv" begin
+        spMv1()
     end
     return
 end

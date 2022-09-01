@@ -3,6 +3,9 @@ uuid = "8086fd22-9a0c-46a5-a6c8-6e24676501fe"
 authors = ["Guillaume Marques <guillaume.marques@protonmail.com>"]
 version = "0.5.3"
 
+[deps]
+SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+
 [compat]
 julia = "1"
 
