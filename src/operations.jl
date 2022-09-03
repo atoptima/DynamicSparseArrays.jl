@@ -23,6 +23,18 @@ Base.:(*)(mat::Transposed{DynamicSparseMatrix{K,L,T}}, v::DynamicSparseVector{K,
 Base.:(*)(mat::Transposed{DynamicSparseMatrix{K,L,T}}, v::SparseVector{T,K}) where {K,L,T} =
     _mul_output(_mul(mat.array.rowmajor, v), size(mat, 1))
 
+Base.:(*)(v::DynamicSparseVector{L,T}, mat::Transposed{DynamicSparseMatrix{K,L,T}}) where {K,L,T} = 
+    _mul_output(_mul(mat.array.colmajor, v.pma), size(mat, 2))
+
+Base.:(*)(v::SparseVector{T,L}, mat::Transposed{DynamicSparseMatrix{K,L,T}}) where {K,L,T} =
+    _mul_output(_mul(mat.array.colmajor, v), size(mat, 2))
+
+Base.:(*)(v::DynamicSparseVector{K,T}, mat::DynamicSparseMatrix{K,L,T}) where {K,L,T} = 
+    _mul_output(_mul(mat.rowmajor, v.pma), size(mat, 2))
+
+Base.:(*)(v::SparseVector{T,K}, mat::DynamicSparseMatrix{K,L,T}) where {K,L,T} =
+    _mul_output(_mul(mat.rowmajor, v), size(mat, 2))
+
 function _mul_dyn_mat_col_loop!(result, mat, col_key_pos, vec_row_id, vec_val)
     while col_key_pos <= length(mat.col_keys) && mat.col_keys[col_key_pos] < vec_row_id
         col_key_pos += 1
