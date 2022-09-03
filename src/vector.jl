@@ -82,3 +82,22 @@ end
 
 SparseArrays.nnz(v::DynamicSparseVector) = nnz(v.pma)
 Base.copy(::DynamicSparseVector) = error("copy of a dynamic sparse vector not implemented.")
+
+# to use linear algebra:
+function SparseArrays.nonzeroinds(v::DynamicSparseVector{K,T}) where {K,T}
+    return reduce(v.pma.array; init = K[]) do collection, e
+        if !isnothing(e)
+            push!(collection, first(e))
+        end
+        return collection
+    end
+end
+
+function SparseArrays.nonzeros(v::DynamicSparseVector{K,T}) where {K,T}
+    return reduce(v.pma.array; init = T[]) do collection, e
+        if !isnothing(e)
+            push!(collection, last(e))
+        end
+        return collection
+    end
+end 

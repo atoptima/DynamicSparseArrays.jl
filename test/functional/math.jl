@@ -50,3 +50,45 @@ function spMv1()
     @test i == j == d
 end
 
+function addition()
+    vec_rows1 = rand(rng, 1:100, 25)
+    vec_values1 = rand(rng, 1:10, 25)
+
+    dyn_vec1 = dynamicsparsevec(vec_rows1, vec_values1, 100)
+    vec1 = sparsevec(vec_rows1, vec_values1, 100)
+
+    vec_rows2 = rand(rng, 1:100, 25)
+    vec_values2 = rand(rng, 1:10, 25)
+
+    dyn_vec2 = dynamicsparsevec(vec_rows2, vec_values2, 100)
+    vec2 = sparsevec(vec_rows2, vec_values2, 100)
+
+    classic_sum = vec1 + vec2
+
+    @test dyn_vec1 + dyn_vec2 == classic_sum
+    @test vec1 + dyn_vec2 == classic_sum
+    @test dyn_vec1 + vec2 == classic_sum
+end
+
+function subtraction()
+    vec_rows1 = rand(rng, 1:100, 25)
+    vec_values1 = rand(rng, 1:10, 25)
+
+    dyn_vec1 = dynamicsparsevec(vec_rows1, vec_values1, 100)
+    vec1 = sparsevec(vec_rows1, vec_values1, 100)
+
+    vec_rows2 = rand(rng, 1:100, 25)
+    vec_values2 = rand(rng, 1:10, 25)
+
+    dyn_vec2 = dynamicsparsevec(vec_rows2, vec_values2, 100)
+    vec2 = sparsevec(vec_rows2, vec_values2, 100)
+
+    classic_sub = vec1 - vec2
+
+    @test dyn_vec1 - dyn_vec2 == classic_sub
+    @test vec1 - dyn_vec2 == classic_sub
+    @test dyn_vec1 - vec2 == classic_sub
+    @test -dyn_vec1 == -vec1
+    @test -dyn_vec2 == -vec2
+end
+

@@ -38,8 +38,10 @@ function functional_tests()
         dynsparsematrix_fill_mode()
     end
 
-    @testset "spMv" begin
+    @testset "lin alg" begin
         spMv1()
+        addition()
+        subtraction()
     end
     return
 end
