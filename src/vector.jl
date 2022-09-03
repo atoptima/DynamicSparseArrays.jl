@@ -1,4 +1,4 @@
-mutable struct DynamicSparseVector{K,T}
+mutable struct DynamicSparseVector{K,T} <: AbstractSparseVector{T,K}
     n::K # length of the vector
     pma::PackedMemoryArray{K,T,NoPredictor}
 end
@@ -63,7 +63,7 @@ Base.size(v::DynamicSparseVector) = (v.n,)
 Base.size(v::DynamicSparseVector, i) = size(v)[i]
 Base.iterate(v::DynamicSparseVector, state = (eachindex(v.pma.array),)) = iterate(v.pma, state)
 Base.lastindex(v::DynamicSparseVector) = lastindex(v.pma)
-Base.getindex(v::DynamicSparseVector, key) = getindex(v.pma, key)
+Base.getindex(v::DynamicSparseVector, key::Integer) = getindex(v.pma, key)
 Base.getindex(v::DynamicSparseVector, ::Colon) = v
 
 function Base.setindex!(v::DynamicSparseVector, value, key)

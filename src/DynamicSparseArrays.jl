@@ -4,6 +4,7 @@ using SparseArrays
 
 export DynamicSparseVector,
        DynamicSparseMatrix,
+       DynamicMatrixColView,
        dynamicsparsevec,
        dynamicsparse,
        nbpartitions,

@@ -14,11 +14,14 @@ _mul_output(result::Dict{K,V}, n::K) where {K<:Integer,V} = sparsevec(result, n)
 Base.:(*)(mat::DynamicSparseMatrix{K,L,T}, v::DynamicSparseVector{L,T}) where {K,L,T} = 
     _mul_output(_mul(mat.colmajor, v.pma), size(mat, 1))
 
-Base.:(*)(mat::DynamicSparseMatrix{K,L,T}, v::SparseVector{L,T}) where {K,L,T} =
+Base.:(*)(mat::DynamicSparseMatrix{K,L,T}, v::SparseVector{T,L}) where {K,L,T} =
     _mul_output(_mul(mat.colmajor, v), size(mat, 1))
 
 Base.:(*)(mat::Transposed{DynamicSparseMatrix{K,L,T}}, v::DynamicSparseVector{K,T}) where {K,L,T} = 
     _mul_output(_mul(mat.array.rowmajor, v.pma), size(mat, 1))
+
+Base.:(*)(mat::Transposed{DynamicSparseMatrix{K,L,T}}, v::SparseVector{T,K}) where {K,L,T} =
+    _mul_output(_mul(mat.array.rowmajor, v), size(mat, 1))
 
 function _mul_dyn_mat_col_loop!(result, mat, col_key_pos, vec_row_id, vec_val)
     while col_key_pos <= length(mat.col_keys) && mat.col_keys[col_key_pos] < vec_row_id
@@ -54,7 +57,7 @@ function _mul_dyn_mat_col_loop!(result, mat, col_key_pos, vec_row_id, vec_val)
     return false, next_col_key_pos
 end
 
-function _mul(mat::MappedPackedCSC{K,L,T}, vec::SparseVector{L,T}) where {K,L,T}
+function _mul(mat::MappedPackedCSC{K,L,T}, vec::SparseVector{T,L}) where {K,L,T}
     result = Dict{K,T}()
     col_key_pos = 1
     @inbounds begin

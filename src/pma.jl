@@ -5,7 +5,7 @@ struct NoPredictor <: AbstractPredictor end
 # Predictor : TODO later
 
 # Adaptative Packed Memory Array
-mutable struct PackedMemoryArray{K,T,P <: AbstractPredictor} <: AbstractArray{T,1}
+mutable struct PackedMemoryArray{K,T,P <: AbstractPredictor}
     capacity::Int
     segment_capacity::Int
     nb_segments::Int
