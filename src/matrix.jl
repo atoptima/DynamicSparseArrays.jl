@@ -7,12 +7,27 @@ mutable struct DynamicSparseMatrix{K,L,T}
     rowmajor::Union{MappedPackedCSC{L,K,T}, Nothing}
 end
 
+"""
+    dynamicsparse(I, J, V, [m, n])
+
+Creates a dynamic sparse matrix `S` of dimensions `m`×`n` such that `S[I[k], J[k]] = V[k]`.
+"""
 function dynamicsparse(I::Vector{K}, J::Vector{L}, V::Vector{T}, m = _guess_length(I), n = _guess_length(J)) where {K,L,T}
     return DynamicSparseMatrix(
         m, n, false, nothing, dynamicsparsecolmajor(I,J,V), dynamicsparsecolmajor(J,I,V)
     )
 end
 
+"""
+    dynamicsparse(Ti, Tj, Tv [; fill_mode = true])
+
+Creates an empty dynamic sparse matrix with row keys of type `Ti`, column keys of 
+type `Tj`, and non-zero values of type `Tv`.
+By default, the matrix is returned in a "fill mode".
+This allows the user to fill the matrix with non-zero entries.
+All the write operations are stored in a `Dict`.
+When the matrix is filled, the user must call `closefillmode!(matrix)`.
+"""
 function dynamicsparse(::Type{K}, ::Type{L}, ::Type{T}; fill_mode = true) where {K,L,T}
     return if fill_mode
         DynamicSparseMatrix(

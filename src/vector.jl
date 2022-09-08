@@ -52,6 +52,13 @@ function dynamicsparsevec(
 end
 
 dynamicsparsevec(I,V) = dynamicsparsevec(I,V,+)
+
+"""
+    dynamicsparsevec(I, V, [combine, n])
+
+Creates a dynamic sparse vector `S` of length `n` such that `S[I[k]] = S[V[k]]`.
+The combine operator is used to combine the values of `V` that have same id in `I`.
+"""
 dynamicsparsevec(I::Vector{K},V,n::K) where K = dynamicsparsevec(I,V,+,n)
 
 shrink_size!(v::DynamicSparseVector) = v.n = _guess_length(v.pma)
