@@ -1,15 +1,9 @@
 include("iterators.jl")
 include("spmv.jl")
 
-function build_params(nb_keys::Int = 200, keys_domain::Tuple{Int, Int} = (1, 2000))
-    lb, ub = keys_domain
-    I = collect(lb:1:ub)
-    J = collect(lb:1:ub)
-    nb_excluded_keys = (ub-lb)+1-nb_keys
-    for _ in 1:nb_excluded_keys
-        deleteat!(I, rand(2:1:length(I)-1))
-        deleteat!(J, rand(2:1:length(J)-1))
-    end
+function build_params(m::Int, n::Int, nb_keys::Int)
+    I = [rand(1:1:m) for _ in 1:nb_keys]
+    J = [rand(1:1:n) for _ in 1:nb_keys]
     V = [rand() for _ in 1:nb_keys]
     return I, J, V
 end
@@ -24,25 +18,32 @@ function print_ranking(title::String, tests::Dict)
 end
 
 function performance_tests()
-    I, J, V = build_params()
-    dyn_vector = dynamicsparsevec(I, V)
-    dyn_matrix = dynamicsparse(I, J, V)
-    vector = sparsevec(I, V)
-    matrix = sparse(I, J, V)
+    @testset "Performance tests" begin
+        m, n, nb_keys = 1000, 1000, 100
+        I, J, V = build_params(m, n, nb_keys)
+        dyn_vector = dynamicsparsevec(I, V, m)
+        dyn_matrix = dynamicsparse(I, J, V, m, n)
+        vector = sparsevec(I, V, m)
+        matrix = sparse(I, J, V, m, n)
 
-    vectors_iteration_tests = Dict(
-        "Dynamic Sparse Vector" => dynsparsevec_it_perfomance(dyn_vector),
-        "Sparse Vector" => sparsevec_it_perfomance(vector)
-    )
-    matrices_iteration_tests = Dict(
-        "Dynamic Sparse Matrix" => dynsparsematrix_it_perfomance(dyn_matrix, I, J),
-        "Sparse Matrix" => sparsematrix_it_perfomance(matrix, I, J)
-    )
-    spmv_tests = Dict(
-        "Dynamic Sparce Array" => dynsparsearray_spmv_performance(dyn_matrix, dyn_vector),
-        "Sparce Array" => sparsearray_spmv_performance(matrix, vector)
-    )
-    print_ranking("Vectors Iteration Ranking", vectors_iteration_tests)
-    print_ranking("Matrices Iteration Ranking", matrices_iteration_tests)
-    print_ranking("SPMV Ranking", spmv_tests)
+        vectors_iteration_tests = Dict(
+            "Dynamic Sparse Vector" => dynsparsevec_it_perfomance(dyn_vector),
+            "Sparse Vector" => sparsevec_it_perfomance(vector)
+        )
+        matrices_iteration_tests = Dict(
+            "Dynamic Sparse Matrix" => dynsparsematrix_it_perfomance(dyn_matrix, I, J),
+            "Sparse Matrix" => sparsematrix_it_perfomance(matrix, I, J)
+        )
+        spmv_tests = Dict(
+            "Dynamic Sparse Array" => dynsparsearray_spmv_performance(dyn_matrix, dyn_vector),
+            "Sparse Array" => sparsearray_spmv_performance(matrix, vector)
+        )
+        print_ranking("Vectors Iteration Ranking", vectors_iteration_tests)
+        print_ranking("Matrices Iteration Ranking", matrices_iteration_tests)
+        print_ranking("SPMV Ranking", spmv_tests)
+
+        @test vectors_iteration_tests["Dynamic Sparse Vector"] < vectors_iteration_tests["Sparse Vector"]
+        @test matrices_iteration_tests["Sparse Matrix"] < matrices_iteration_tests["Dynamic Sparse Matrix"]
+        @test spmv_tests["Dynamic Sparse Array"] < spmv_tests["Sparse Array"]
+    end
 end

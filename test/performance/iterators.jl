@@ -1,15 +1,15 @@
 function iterate_dynsparsevec(vector)
     sum = 0.0
-    for e in vector
-        @inbounds sum += last(e)
+    for (key, value) in vector
+        @inbounds sum += value
     end
     return sum
 end
 
 function iterate_sparsevec(vector)
     sum = 0.0
-    for e in vector
-        @inbounds sum += e
+    for i in eachindex(vector)
+        @inbounds sum += vector[i]
     end
     return sum
 end
