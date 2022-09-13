@@ -1,76 +1,48 @@
-# include("iterators.jl")
+include("iterators.jl")
+include("spmv.jl")
 
-# function iterate_over_vector(a)
-#     c = 0
-#     for f in a
-#         if !isnothing(f)
-#             @inbounds c += f[2]
-#         end
-#     end
-#     return c
-# end
+function build_params(nb_keys::Int = 200, keys_domain::Tuple{Int, Int} = (1, 2000))
+    lb, ub = keys_domain
+    I = collect(lb:1:ub)
+    J = collect(lb:1:ub)
+    nb_excluded_keys = (ub-lb)+1-nb_keys
+    for _ in 1:nb_excluded_keys
+        deleteat!(I, rand(2:1:length(I)-1))
+        deleteat!(J, rand(2:1:length(J)-1))
+    end
+    V = [rand() for _ in 1:nb_keys]
+    return I, J, V
+end
 
-# function iterate_over_matrix(pma)
-#     # sum = 0.0
-#     # I, J, V = dynsparsematrix_factory(1000, 1000, 0.3) 
-#     # matrix = dynamicsparse(I, J, V)
-#     c = 0
-#     for e in pma
-#         #println("\e[31m e = $e \e[00m")
-#         #sum += val
-#         @inbounds c += e[2]
-#     end
-#     return c
-# end
-
-# function iterate_over_matrix_array(pma)
-#     c = 0
-#     for e in pma.array
-#         if !isnothing(e)
-#             @inbounds c += e[2]
-#         end
-#     end
-#     return c
-# end
+function print_ranking(title::String, tests::Dict)
+    ranking = sort(collect(tests); by = x -> last(x), rev = true)
+    printstyled("$title:\n"; color = :green)
+    slowest, fastest = ranking
+    percentage = ((slowest[2] - fastest[2]) / fastest[2]) * 100
+    @printf "\t1. %s - %.2f ns (fastest)\n" fastest[1] fastest[2]
+    @printf "\t2. %s - %.2f ns (%.2f%% slower)\n" slowest[1] slowest[2] percentage
+end
 
 function performance_tests()
-#     I, J, V = dynsparsematrix_factory(10000, 10000, 0.3) 
-#     matrix = dynamicsparse(I, J, V)
-#     pma = matrix[:, 33]
+    I, J, V = build_params()
+    dyn_vector = dynamicsparsevec(I, V)
+    dyn_matrix = dynamicsparse(I, J, V)
+    vector = sparsevec(I, V)
+    matrix = sparse(I, J, V)
 
-#     @show length(pma.array)
-
-#     vec = Union{Nothing,Tuple{Int,Float64}}[(i,i*1.0) for i in 1:100000]
-#     for i in 1:5:5000
-#         vec[i] = nothing
-#     end
-
-#     vec2 = Vector{Union{Nothing,Tuple{Int,Float64}}}(nothing, 100000)
-#     for i in 1:5:5000
-#         vec2[i] = (i, i*1.0)
-#     end
-
-#     # @time iterate_over_vector(vec)
-#     # @time iterate_over_vector(vec2)
-#     println("------------")
-#     @time iterate_over_matrix(pma)
-#     @time iterate_over_matrix_array(pma)
-#     @time iterate_over_vector(pma.array)
-
-#     println("**********************")
-
-#     @time iterate_over_matrix(pma)
-#     @time iterate_over_matrix_array(pma)
-#     @time iterate_over_vector(pma.array)
-
-#     println("-------------- mem check ------------")
-#     vec = [1,2,3]
-#     vec = ["a", "v", "d"]
-#     @show p = pointer(vec)
-#     @show unsafe_load(p, 1)
-#     @show unsafe_load(p, 2)
-
-#     @show p2 = pointer(pma.array)
-#     @show unsafe_load(p2, 1)
-#     @show unsafe_load(p2, 2)
+    vectors_iteration_tests = Dict(
+        "Dynamic Sparse Vector" => dynsparsevec_it_perfomance(dyn_vector),
+        "Sparse Vector" => sparsevec_it_perfomance(vector)
+    )
+    matrices_iteration_tests = Dict(
+        "Dynamic Sparse Matrix" => dynsparsematrix_it_perfomance(dyn_matrix, I, J),
+        "Sparse Matrix" => sparsematrix_it_perfomance(matrix, I, J)
+    )
+    spmv_tests = Dict(
+        "Dynamic Sparce Array" => dynsparsearray_spmv_performance(dyn_matrix, dyn_vector),
+        "Sparce Array" => sparsearray_spmv_performance(matrix, vector)
+    )
+    print_ranking("Vectors Iteration Ranking", vectors_iteration_tests)
+    print_ranking("Matrices Iteration Ranking", matrices_iteration_tests)
+    print_ranking("SPMV Ranking", spmv_tests)
 end
