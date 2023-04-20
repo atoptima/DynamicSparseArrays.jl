@@ -121,8 +121,6 @@ function Base.show(io::IO, matrix::DynamicSparseMatrix{K,L,T}) where {K,L,T}
     pma = matrix.colmajor.pcsc.pma
     semaphores = matrix.colmajor.pcsc.semaphores
     col_keys = matrix.colmajor.col_keys
-    @show matrix.colmajor.col_keys
-    @show semaphores
     tmp = 0
     for (index, elmt) in enumerate(pma.array)
         if index in semaphores
