@@ -80,7 +80,6 @@ function Base.setindex!(v::DynamicSparseVector, value, key)
     return setindex!(v.pma, value, key)
 end
 
-Base.show(io::IO, v::DynamicSparseVector) = show(io, v.pma)
 Base.filter(f, v::DynamicSparseVector) = filter(f, v.pma)
 
 function Base.:(==)(v1::DynVec, v2::DynVec) where {DynVec<:DynamicSparseVector}
@@ -108,3 +107,15 @@ function SparseArrays.nonzeros(v::DynamicSparseVector{K,T}) where {K,T}
         return collection
     end
 end 
+
+function Base.show(io::IO, v::DynamicSparseVector{K,T}) where {K,T}
+    @show(v.pma)
+    print(io, "[")
+    for (elmt) in v.pma.array
+        if !isnothing(elmt)
+            (k,t) = elmt
+            print(io, " ($(k),$(t)) ")
+        end
+    end
+    println(io, "]")
+end
