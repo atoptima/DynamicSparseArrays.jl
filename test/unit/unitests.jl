@@ -54,6 +54,7 @@ function unit_tests()
 
     @testset "Sparse vector display" begin
         test_vec_display()
+        test_matrix_display()
     end
     return 
 end

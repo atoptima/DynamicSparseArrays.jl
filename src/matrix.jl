@@ -114,3 +114,22 @@ function closefillmode!(matrix::DynamicSparseMatrix{K,L,T}) where {K,L,T}
     matrix.rowmajor = dynamicsparsecolmajor(J,I,V)
     return true
 end
+
+
+function Base.show(io::IO, matrix::DynamicSparseMatrix{K,L,T}) where {K,L,T}
+    #col major iteration
+    pma = matrix.colmajor.pcsc.pma
+    semaphores = matrix.colmajor.pcsc.semaphores
+    j = 1
+    for (index, elmt) in enumerate(pma.array)
+        if index in semaphores
+            j += 1
+            print(io, "\n")
+        else
+            if !isnothing(elmt)
+                (i, value) = elmt
+                print(io, " [$(j), $(i)] = $(value) ")
+            end
+        end 
+    end 
+end
