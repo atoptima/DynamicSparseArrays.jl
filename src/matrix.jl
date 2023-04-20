@@ -128,7 +128,7 @@ function Base.show(io::IO, matrix::DynamicSparseMatrix{K,L,T}) where {K,L,T}
         else
             if !isnothing(elmt)
                 (i, value) = elmt
-                print(io, " [$(j), $(i)] = $(value) ")
+                println(io, " [$(j), $(i)] = $(value) ")
             end
         end 
     end 
