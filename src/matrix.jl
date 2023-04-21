@@ -120,13 +120,15 @@ function Base.show(io::IO, matrix::DynamicSparseMatrix{K,L,T}) where {K,L,T}
     #col major iteration
     pma = matrix.colmajor.pcsc.pma
     semaphores = matrix.colmajor.pcsc.semaphores
-    j = 1
+    col_keys = matrix.colmajor.col_keys
+    tmp = 0
     for (index, elmt) in enumerate(pma.array)
         if index in semaphores
-            j += 1
+            tmp += 1
             print(io, "\n")
         else
             if !isnothing(elmt)
+                j = col_keys[tmp]
                 (i, value) = elmt
                 println(io, " [$(j), $(i)] = $(value) ")
             end
