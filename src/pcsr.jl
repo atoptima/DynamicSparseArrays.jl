@@ -112,25 +112,30 @@ function addpartition!(pcsc::PackedCSC{K,T}) where {K,T}
 end
 
 function addpartition!(pcsc::PackedCSC{K,T}, prev_sem_id::Int) where {K,T}
+    semaphores = pcsc.semaphores
+    @assert !isnothing(semaphores)
     sem_key = semaphore_key(K)
-    nb_semaphores = length(pcsc.semaphores)
+    nb_semaphores = length(semaphores)
     sem_pos = 0
-    if pcsc.semaphores[prev_sem_id + 1] === nothing
-        next_sem_id = _nextnonemptypos(pcsc.semaphores, prev_sem_id + 1)
-        sem_pos = pcsc.semaphores[next_sem_id] - 1 # insert the new semaphore in the pma.array just before the next one
+    semaphore_target = semaphores[prev_sem_id + 1]
+    if semaphore_target === nothing
+        next_sem_id = _nextnonemptypos(semaphores, prev_sem_id + 1)
+        next_semaphore = semaphores[next_sem_id]
+        @assert !isnothing(next_semaphore)
+        sem_pos = next_semaphore - 1 # insert the new semaphore in the pma.array just before the next one
     else
-        sem_pos = pcsc.semaphores[prev_sem_id + 1] - 1 # insert the new semaphore just before the next one
-        resize!(pcsc.semaphores, nb_semaphores + 1) # create room for the position of the new semaphore
+        sem_pos = semaphore_target - 1 # insert the new semaphore just before the next one
+        resize!(semaphores, nb_semaphores + 1) # create room for the position of the new semaphore
         for i in nb_semaphores:-1:(prev_sem_id+1)
             moved_sem_pos = pcsc.semaphores[i]
-            pcsc.semaphores[i+1] = pcsc.semaphores[i]
+            semaphores[i+1] = semaphores[i]
             pcsc.pma.array[moved_sem_pos] = (sem_key, T(i+1))
         end
     end
     pcsc.nb_partitions += 1
     sem_val = T(prev_sem_id+1)
     insert_pos, new_elem = _insert!(pcsc.pma.array, sem_key, sem_val, sem_pos, pcsc.semaphores)
-    pcsc.semaphores[prev_sem_id+1] = insert_pos
+    semaphores[prev_sem_id+1] = insert_pos
     if new_elem
         pcsc.pma.nb_elements += 1
         win_start, win_end, nbcells = _look_for_rebalance!(pcsc.pma, insert_pos)
@@ -162,12 +167,19 @@ function addcolumn!(mpcsc::MappedPackedCSC{K,L,T}, col::L, prev_col_pos::Int) wh
     return col_pos
 end
 
-_pos_of_partition_start(pcsc, partition) = pcsc.semaphores[partition]
+function _pos_of_partition_start(pcsc, partition)
+    partition_start_pos = pcsc.semaphores[partition]
+    @assert !isnothing(partition_start_pos)
+    return partition_start_pos
+end
+
 function _pos_of_partition_end(pcsc, partition)
     pos = length(pcsc.pma.array)
     next_partition = _nextnonemptypos(pcsc.semaphores, partition)
     if next_partition != 0
-        pos = pcsc.semaphores[next_partition] - 1
+        next_partition_start_pos = pcsc.semaphores[next_partition]
+        @assert !isnothing(next_partition_start_pos)
+        pos = next_partition_start_pos - 1
     end
     return pos
 end
@@ -343,7 +355,8 @@ function _dynamicsparse(
 ) where {K,L,T}
     !always_use_map && error("TODO issue #2.")
 
-    p = sortperm(collect(zip(J,I)), alg=QuickSort) # Columns first
+    ind = collect(zip(J,I))
+    p = sortperm(ind, alg=QuickSort) # Columns first
     @inbounds I = I[p]
     @inbounds J = J[p]
     @inbounds V = V[p]

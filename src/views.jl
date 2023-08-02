@@ -52,7 +52,9 @@ function Base.view(::Buffer{L,K,T}, ::Colon, col::L) where {K,L,T}
     throw(ArgumentError("Cannot view a column of the BufferView."))
 end
 
-function Base.iterate(bf::BufferView, state = 1)
+Base.eltype(::Type{BufferView{L,K,T}}) where {K,L,T} = Tuple{L,T}
+Base.length(bf::BufferView) = length(bf.colids)
+function Base.iterate(bf::BufferView, state::Int = 1)
     state > length(bf.vals) && return nothing
     return ((bf.colids[state], bf.vals[state]), state + 1)
 end

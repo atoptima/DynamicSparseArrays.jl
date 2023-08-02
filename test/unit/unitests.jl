@@ -46,6 +46,8 @@ function unit_tests()
 
     @testset "Views" begin
         test_views()
+        test_buffer_views()
+        @test_call test_buffer_views()
     end
 
     @testset "Sparse Matrix Vector Multiplication" begin
