@@ -11,40 +11,70 @@ Base.size(mat::Transposed, i) = size(mat)[i]
 _mul_output(result::Dict{K,V}, _) where {K,V} = result
 _mul_output(result::Dict{K,V}, n::K) where {K<:Integer,V} = sparsevec(result, n)
 
-Base.:(*)(mat::DynamicSparseMatrix{K,L,T}, v::DynamicSparseVector{L,T}) where {K,L,T} = 
-    _mul_output(_mul(mat.colmajor, v.pma), size(mat, 1))
+function Base.:(*)(mat::DynamicSparseMatrix{K,L,T}, v::DynamicSparseVector{L,T}) where {K,L,T} 
+    colmajor = mat.colmajor
+    @assert !isnothing(colmajor)
+    return _mul_output(_mul(colmajor, v.pma), size(mat, 1))
+end
 
-Base.:(*)(mat::DynamicSparseMatrix{K,L,T}, v::SparseVector{T,L}) where {K,L,T} =
-    _mul_output(_mul(mat.colmajor, v), size(mat, 1))
+function Base.:(*)(mat::DynamicSparseMatrix{K,L,T}, v::SparseVector{T,L}) where {K,L,T}
+    colmajor = mat.colmajor
+    @assert !isnothing(colmajor)
+    return _mul_output(_mul(colmajor, v), size(mat, 1))
+end
 
-Base.:(*)(mat::Transposed{DynamicSparseMatrix{K,L,T}}, v::DynamicSparseVector{K,T}) where {K,L,T} = 
-    _mul_output(_mul(mat.array.rowmajor, v.pma), size(mat, 1))
+function Base.:(*)(mat::Transposed{DynamicSparseMatrix{K,L,T}}, v::DynamicSparseVector{K,T}) where {K,L,T}
+    rowmajor = mat.array.rowmajor
+    @assert !isnothing(rowmajor) 
+    return _mul_output(_mul(rowmajor, v.pma), size(mat, 1))
+end
 
-Base.:(*)(mat::Transposed{DynamicSparseMatrix{K,L,T}}, v::SparseVector{T,K}) where {K,L,T} =
-    _mul_output(_mul(mat.array.rowmajor, v), size(mat, 1))
+function Base.:(*)(mat::Transposed{DynamicSparseMatrix{K,L,T}}, v::SparseVector{T,K}) where {K,L,T}
+    rowmajor = mat.array.rowmajor
+    @assert !isnothing(rowmajor)
+    return _mul_output(_mul(rowmajor, v), size(mat, 1))
+end
 
-Base.:(*)(v::DynamicSparseVector{L,T}, mat::Transposed{DynamicSparseMatrix{K,L,T}}) where {K,L,T} = 
-    _mul_output(_mul(mat.array.colmajor, v.pma), size(mat, 2))
+function Base.:(*)(v::DynamicSparseVector{L,T}, mat::Transposed{DynamicSparseMatrix{K,L,T}}) where {K,L,T} 
+    colmajor = mat.array.colmajor
+    @assert !isnothing(colmajor)
+    return _mul_output(_mul(colmajor, v.pma), size(mat, 2))
+end
 
-Base.:(*)(v::SparseVector{T,L}, mat::Transposed{DynamicSparseMatrix{K,L,T}}) where {K,L,T} =
-    _mul_output(_mul(mat.array.colmajor, v), size(mat, 2))
+function Base.:(*)(v::SparseVector{T,L}, mat::Transposed{DynamicSparseMatrix{K,L,T}}) where {K,L,T}
+    colmajor = mat.array.colmajor
+    @assert !isnothing(colmajor)
+    return _mul_output(_mul(colmajor, v), size(mat, 2))
+end
 
-Base.:(*)(v::DynamicSparseVector{K,T}, mat::DynamicSparseMatrix{K,L,T}) where {K,L,T} = 
-    _mul_output(_mul(mat.rowmajor, v.pma), size(mat, 2))
+function Base.:(*)(v::DynamicSparseVector{K,T}, mat::DynamicSparseMatrix{K,L,T}) where {K,L,T}
+    rowmajor = mat.rowmajor
+    @assert !isnothing(rowmajor)
+    return _mul_output(_mul(rowmajor, v.pma), size(mat, 2))
+end
 
-Base.:(*)(v::SparseVector{T,K}, mat::DynamicSparseMatrix{K,L,T}) where {K,L,T} =
-    _mul_output(_mul(mat.rowmajor, v), size(mat, 2))
+function Base.:(*)(v::SparseVector{T,K}, mat::DynamicSparseMatrix{K,L,T}) where {K,L,T}
+    rowmajor = mat.rowmajor
+    @assert !isnothing(rowmajor)
+    return _mul_output(_mul(rowmajor, v), size(mat, 2))
+end
 
 function _mul_dyn_mat_col_loop!(result, mat, col_key_pos, vec_row_id, vec_val)
-    while col_key_pos <= length(mat.col_keys) && mat.col_keys[col_key_pos] < vec_row_id
+    col_key = nothing
+    while col_key_pos <= length(mat.col_keys)
+        col_key = mat.col_keys[col_key_pos]
+        if !isnothing(col_key) && col_key >= vec_row_id
+            break
+        end
         col_key_pos += 1
     end
-
+    
     if col_key_pos > length(mat.col_keys)
         return true, col_key_pos # finished to explore the mat, we stop the spMv
     end
 
-    if mat.col_keys[col_key_pos] != vec_row_id
+    col_key = mat.col_keys[col_key_pos]
+    if isnothing(col_key) || col_key != vec_row_id
         return false, col_key_pos # no non-zero value in this column, we move to next one.
     end
 
@@ -53,10 +83,15 @@ function _mul_dyn_mat_col_loop!(result, mat, col_key_pos, vec_row_id, vec_val)
         next_col_key_pos += 1
     end
 
-    mat_row_start = mat.pcsc.semaphores[col_key_pos] + 1
+    cur_semaphore = mat.pcsc.semaphores[col_key_pos]
+    @assert !isnothing(cur_semaphore)
+    
+    mat_row_start = cur_semaphore + 1
     mat_row_end = length(mat.pcsc.pma.array)
     if next_col_key_pos <= length(mat.col_keys)
-        mat_row_end = mat.pcsc.semaphores[next_col_key_pos] - 1
+        next_semaphore = mat.pcsc.semaphores[next_col_key_pos]
+        @assert !isnothing(next_semaphore)
+        mat_row_end = next_semaphore - 1
     end
 
     for mat_row_pos in mat_row_start:mat_row_end

@@ -139,7 +139,7 @@ function spread!(array::Elements{K,T}, window_start, window_end, m) where {K,T}
     return
 end
 
-function spread!(array::Elements{K,T}, window_start, window_end, m, semaphores) where {K,T}
+function spread!(array::Elements{K,T}, window_start, window_end, m, semaphores::Union{Nothing,Vector}) where {K,T}
     capacity = window_end - window_start + 1
     nb_empty_cells = capacity - m
     empty_cell_freq = capacity / nb_empty_cells
@@ -157,9 +157,12 @@ function spread!(array::Elements{K,T}, window_start, window_end, m, semaphores) 
                 array[j] = array[i]
                 array[i] = nothing
             end
-            (key, val) = array[j]
-            if key == sem_key
-                semaphores[Int(val)] = j
+            elem_j = array[j]
+            if !isnothing(semaphores) && !isnothing(elem_j)
+                (key, val) = elem_j
+                if key == sem_key
+                    semaphores[Int(val)] = j
+                end
             end
             i -= 1
             j -= 1

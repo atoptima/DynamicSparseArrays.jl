@@ -13,6 +13,7 @@ function test_spmv_1()
     V2 = [1, 1, 1]
     vec = dynamicsparsevec(I2, V2)
 
+    @test_call matrix * vec
     result = matrix * vec
 
     # The multiplication returns a Dict.
@@ -40,6 +41,7 @@ function test_spmv_2()
         @test transposed_matrix[j,i] == matrix[i,j] == v
     end
 
+    @test_call transpose(matrix) * vec
     result = transpose(matrix) * vec
 
     # The multiplication returns a Dict.
@@ -66,6 +68,7 @@ function test_spmv_3()
     V2 = [1, 1, 1]
     vec = dynamicsparsevec(I2, V2)
 
+    @test_call matrix * vec
     result = matrix * vec
 
     @test result[1] == 1
@@ -88,6 +91,7 @@ function test_spmv_4()
     V2 = [1, 1, 1, 1]
     vec = dynamicsparsevec(I2, V2)
 
+    @test_call matrix * vec
     result = matrix * vec
 
     @test get(result, 1, 0.0) == 1
@@ -99,6 +103,7 @@ function test_spmv_4()
 
     deletecolumn!(matrix, 3)
 
+    @test_call matrix * vec
     result = matrix * vec
 
     @test get(result, 1, 0.0) == 1
@@ -110,6 +115,7 @@ function test_spmv_4()
 
     deleterow!(matrix, 4)
 
+    @test_call matrix * vec
     result = matrix * vec
 
     @test get(result, 1, 0.0) == 1

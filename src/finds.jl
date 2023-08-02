@@ -37,9 +37,9 @@ function find(array::Vector{Union{Nothing, T}}, key, from::Int, to::Int) where {
             from = mid + 1
         else
             curkey = _getkey(array, i)
-            if curkey > key
+            if !isnothing(curkey) && curkey > key
                 to = i - 1
-            elseif curkey < key
+            elseif !isnothing(curkey) && curkey < key
                 from = mid + 1
             else
                 return (i, array[i])

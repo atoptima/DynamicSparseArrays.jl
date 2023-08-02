@@ -17,6 +17,7 @@ function test_find()
     expected_output = [(0, nothing), (0, nothing), (2, (3, 10)), (3, (4, 10)), (3, (4, 10)), (3, (4, 10)), (5, (8, 10)), (7, (9, 10)), (7, (9, 10))]
 
     for i in 1:9
+        @test_call DynamicSparseArrays.find(array, look_for_key[i])
         output = DynamicSparseArrays.find(array, look_for_key[i])
         @test output == expected_output[i]
     end
@@ -41,6 +42,7 @@ function test_find()
     expected_output = [(3, (4, 10)), (3, (4, 10)), (3, (4, 10)), (3, (4, 10)), (3, (4, 10)), (3, (4, 10)), (5, (8, 10)), (5, (8, 10)), (5, (8, 10))]
 
     for i in 1:9
+        @test_call DynamicSparseArrays.find(array, look_for_key[i], 4, 6)
         output = DynamicSparseArrays.find(array, look_for_key[i], 4, 6)
         @test output == expected_output[i]
     end
@@ -63,11 +65,13 @@ function test_find()
     # We want to insert a new element of key 4.
     # The element does not exist, and semaphore key < 4.
     # Therefore, `find` returns the position of the sempahore & the semaphore.
+    @test_call DynamicSparseArrays.find(array, 4, 2, 8)
     @test DynamicSparseArrays.find(array, 4, 2, 8) == (2, (3,10))
 
     # We want to insert a new element of key 2.
     # The element does not exist, and semaphore key > 2.
     # Method `find` returns the last element of the left outside -> (0, nothing)
+    @test_call DynamicSparseArrays.find(array, 2, 2, 8)
     @test DynamicSparseArrays.find(array, 2, 2, 8) == (0, nothing)
 
     # It's a postcondition of the `find` methods but wasn't taken into account
@@ -82,7 +86,9 @@ function test_find()
     array = [       nothing,      (3, 10), nothing, nothing, (9, 10), nothing, (10, 10), nothing, (3, 10), nothing, nothing, (2,1), nothing]
     #        |------- left outside ------||----------------------- subarray -------------------||------------ right outside ---------------|
 
+    @test_call DynamicSparseArrays.find(array, 4, 3, 8)
     @test DynamicSparseArrays.find(array, 4, 3, 8) == (2, (3,10))
+    @test_call DynamicSparseArrays.find(array, 2, 3, 8)
     @test DynamicSparseArrays.find(array, 2, 3, 8) == (2, (3,10)) # bug fixed :)
 
     # What happens if the column is empty?
@@ -93,8 +99,11 @@ function test_find()
 
     # position of semaphores: 2, 7, and 8
     # try to insert new elements:
+    @test_call DynamicSparseArrays.find(array, 2, 3, 6)
     @test DynamicSparseArrays.find(array, 2, 3, 6) == (2, (3,10))
+    @test_call DynamicSparseArrays.find(array, 2, 8, 7)
     @test DynamicSparseArrays.find(array, 2, 8, 7) == (7, (3,10))
+    @test_call DynamicSparseArrays.find(array, 1, 9, 11)
     @test DynamicSparseArrays.find(array, 1, 9, 11) == (8, (3,10))
     return
 end

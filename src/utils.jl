@@ -35,11 +35,14 @@ function _getkey(array, pos::Int)
 end
 
 function _getkey(array::Elements{K,T}, pos::Int) where {K,T}
-    if pos == 0 || _isempty(array, pos)
-        return nothing
-    end
-    return array[pos][1]
+    pos == 0 && return nothing
+    elem = array[pos]
+    isnothing(elem) && return nothing
+    return elem[1]
 end
+
+_get_elem_key(elem::Tuple{K,T}) where {K,T} = elem[1]
+_get_elem_key(::Nothing) = nothing
 
 # from included, to excluded
 function _nbcells(array::Elements, from::Int, to::Int)
