@@ -26,7 +26,6 @@ function performance_tests()
         vector = sparsevec(I, V, m)
         matrix = sparse(I, J, V, m, n)
 
-        # Run a first time to avoid precompilation‡
 
         vectors_iteration_tests = Dict(
             "Dynamic Sparse Vector" => dynsparsevec_it_perfomance(dyn_vector),

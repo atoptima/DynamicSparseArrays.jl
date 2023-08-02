@@ -2,7 +2,6 @@ function dynsparsearray_spmv_performance(matrix::DynamicSparseMatrix, vector::Dy
     bench = @benchmark begin
         result = $matrix * $vector
     end
-    println("dynsparsearray_spmv_performance")
     elapsed_time = mean(bench).time
     return elapsed_time
 end
