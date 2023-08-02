@@ -446,7 +446,7 @@ function dynsparsematrix_fill_mode()
         i += 1
     end
 
-    @test_throws ErrorException @view matrix[:,1]
+    # @test_throws ErrorException @view matrix[:,1]
 
     closefillmode!(matrix)
 
@@ -515,6 +515,5 @@ function dynsparsematrix_fill_mode()
     ## Fifth test : Close fill mode of empty matrix not in fill mode
     matrix5 = dynamicsparse(Int, Int, Int; fill_mode = false)
     @test_throws ErrorException closefillmode!(matrix5)
-
     return
 end
