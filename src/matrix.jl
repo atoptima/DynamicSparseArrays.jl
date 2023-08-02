@@ -46,10 +46,17 @@ function Base.setindex!(m::DynamicSparseMatrix{K,L,T}, val, row::K, col::L) wher
         m.n = max(m.n, col)
     end
     if m.fillmode
-        addelem!(m.buffer, row, col, val)
+        buffer = m.buffer
+        @assert !isnothing(buffer)
+        addelem!(buffer, row, col, val)
     else
-        m.colmajor[row, col] = val
-        m.rowmajor[col, row] = val
+        colmajor = m.colmajor
+        @assert !isnothing(colmajor)
+        colmajor[row, col] = val
+
+        rowmajor = m.rowmajor
+        @assert !isnothing(rowmajor)
+        rowmajor[col, row] = val
     end
     return m
 end
@@ -61,12 +68,23 @@ function Base.getindex(m::DynamicSparseMatrix, row, col)
 end
 
 function Base.view(m::DynamicSparseMatrix{K,L,T}, row::K, ::Colon) where {K,L,T}
-    return m.fillmode ? view(m.buffer, row, :) : view(m.rowmajor, :, row)
+    if m.fillmode
+        # Do not allow to create a view on a buffer, otherwise the method is type unstable.
+        error("Matrix is in fill mode, cannot create a view. However, you can use the view method on the buffer.")
+        # buffer = m.buffer
+        # @assert !isnothing(buffer)
+        # return view(buffer, row, :)
+    end 
+    rowmajor = m.rowmajor
+    @assert !isnothing(rowmajor)
+    return view(rowmajor, :, row)
 end
 
 function Base.view(m::DynamicSparseMatrix{K,L,T}, ::Colon, col::L) where {K,L,T}
     m.fillmode && error("View of a column not available in fill mode.")
-    return view(m.colmajor, :, col)
+    colmajor = m.colmajor
+    @assert !isnothing(colmajor)
+    return view(colmajor, :, col)
 end
 
 Base.ndims(m::DynamicSparseMatrix) = 2
