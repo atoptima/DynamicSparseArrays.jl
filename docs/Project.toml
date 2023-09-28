@@ -1,2 +1,5 @@
+name = "DynamicSparseArrays documentation"
+
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+DynamicSparseArrays = "8086fd22-9a0c-46a5-a6c8-6e24676501fe"

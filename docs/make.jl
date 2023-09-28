@@ -6,6 +6,7 @@ makedocs(
     format = Documenter.HTML(
         prettyurls = get(ENV, "CI", nothing) == "true",
     ),
+    warnonly = true,
     pages    = Any[
         "Introduction" => "index.md",
         "Sparse Vector" => "vector.md",
