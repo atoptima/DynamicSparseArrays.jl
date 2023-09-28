@@ -139,17 +139,16 @@ function Base.show(io::IO, matrix::DynamicSparseMatrix{K,L,T}) where {K,L,T}
     pma = matrix.colmajor.pcsc.pma
     semaphores = matrix.colmajor.pcsc.semaphores
     col_keys = matrix.colmajor.col_keys
-    tmp = 0
+    j = nothing
     for (index, elmt) in enumerate(pma.array)
-        if index in semaphores
-            tmp += 1
-            print(io, "\n")
-        else
-            if !isnothing(elmt)
-                j = col_keys[tmp]
-                (i, value) = elmt
-                println(io, " [$(j), $(i)] = $(value) ")
-            end
-        end 
-    end 
+        # TODO: improve performance because a semaphore has a special value so we don't
+        # need to call findfirst when elmt is not a semaphore.
+        sem_pos = findfirst(x -> x == index, semaphores)
+        if !isnothing(sem_pos)
+           j = col_keys[sem_pos]
+        elseif !isnothing(elmt)
+            (i, value) = elmt
+            println(io, " [$(i), $(j)] = $(value) ")
+        end
+    end
 end
