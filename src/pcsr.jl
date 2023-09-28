@@ -204,7 +204,7 @@ end
 
 function deletecolumn!(mpcsc::MappedPackedCSC{K,L,T}, col::L) where {K,L,T}
     col_pos, col_key = find(mpcsc.col_keys, col)
-    col_key != col && throws(ArgumentError("column $(col) does not exist."))
+    col_key != col && throw(ArgumentError("column $(col) does not exist."))
     mpcsc.col_keys[col_pos] = nothing
     deletepartition!(mpcsc.pcsc, col_pos)
     return true
