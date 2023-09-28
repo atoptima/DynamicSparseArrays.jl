@@ -7,6 +7,8 @@
 [![License: MPL 2.0](https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
 
 
+Brief introduction to the package: [https://atoptima.github.io/Coluna.jl/stable/dynamic_sparse_arrays/](https://atoptima.github.io/Coluna.jl/stable/dynamic_sparse_arrays/)
+
 Install the package :
 ```
 ] add DynamicSparseArrays
