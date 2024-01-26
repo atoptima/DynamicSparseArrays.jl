@@ -129,6 +129,7 @@ function addpartition!(pcsc::PackedCSC{K,T}, prev_sem_id::Int) where {K,T}
         for i in nb_semaphores:-1:(prev_sem_id+1)
             moved_sem_pos = pcsc.semaphores[i]
             semaphores[i+1] = semaphores[i]
+            @assert !isnothing(moved_sem_pos)
             pcsc.pma.array[moved_sem_pos] = (sem_key, T(i+1))
         end
     end
